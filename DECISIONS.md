@@ -138,3 +138,37 @@ Run against the owner's own Google account in live mode. Test data (a calendar e
 - **AG Grid 33 is pinned.** axe reports one rule (`aria-required-children`) on the grid's own header wrapper. It is skipped for the grid in the tests only; every other rule is still checked there.
 - **Tests that start a server now bind to 127.0.0.1.** Another program on this computer was sometimes answering on the same port number, which made sign-in fail at random.
 - **Not built:** Tasks tab editing and the P2 live form preview (Phase 2).
+
+## 2026-11-14 (M7: Hardening and release)
+
+- **Settings page built here.** It had been a placeholder since M0. It has text size and contrast (the same switches as the top bar, remembered on the device), time zone, 12 or 24-hour time, week start, usual meeting length, default reminders, which calendar, the Google Calendar daily-email instructions, home-screen instructions and Sign out. It only changes what the server accepts; each setting has a plain error message.
+- **Strict content security policy with a per-request nonce**, set in `proxy.ts`. Scripts run only with the nonce (plus `strict-dynamic`), never `unsafe-inline`. Styles allow inline because the calendar and the grid add their own style tags. `eval` is allowed in development only (React's dev mode needs it). Framing is refused. A browser test visits the main screens and fails on any blocked resource.
+- **Rate limits:** sign-in routes (30 per window), upload route (120 per 10 minutes). Tests that start servers use a fresh limiter each time.
+- **Database missing (§11).** A 404 on the spreadsheet becomes `database_missing`. Any screen then shows a full page in plain words with Try again, Use my newest backup, and Set up a new database. None of these touches what is left in Google.
+- **Friendly error pages** for a page that fails to draw, a page that does not exist, and a last-resort page that does not depend on anything else loading.
+- **Installable app.** A manifest, icons (made from one SVG by `scripts/make-icons.mjs`, including a maskable one), and a small service worker that keeps built files and shows an "You're offline" page when a page cannot load. Pages and data are never cached, so nobody sees stale meetings. The service worker is registered in production only.
+- **Accessibility checks added:** a 48 px check on every button and button-like link on the main screens (phone and desktop), and a keyboard-only run that reaches "+ New meeting" with a visible focus at every stop and adds a meeting without a mouse. axe already ran on every screen at normal size and at A++ with high contrast.
+- **CI** (`.github/workflows/ci.yml`): lint, strict type check, unit and integration tests, build, then the browser tests on both screen sizes.
+- **Not run: Lighthouse.** The attempt to run it here was blocked by the tool permissions, so the score is not measured. It is on the maintainer's list in `docs/MAINTAINER.md`, with the real-phone and real-Google checks.
+
+### MVP acceptance checklist (SPEC §15)
+
+| Item | Status |
+|---|---|
+| A first-time user creates a CCIE meeting on a phone in under 90 seconds | Automated run passes (M3). A real first-time person has not tried it. |
+| Event on Google Calendar with reminders; moving the meeting moves the event | Proven on the mock and on real Google for the first slice (M1). The full flow is not re-run on real Google. |
+| Reschedule in 3 taps or fewer, history shows old and new times | Passes |
+| Marking done with a next date in under 30 seconds, next meeting on the calendar | Passes on the mock |
+| Upcoming ascending, Past separate, table and calendar on phone and desktop | Passes |
+| Search finds any category field; filters and sort on any column | Passes |
+| PDF attached during entry is in Drive, link in Sheet and dashboard | Passes on the mock. Needs one real run. |
+| Admin: raw tables, inline editing, add/hide/reorder columns, Required, options, no redeploy | Passes |
+| Delete is undoable, Trash restores, backup before any permanent removal | Passes |
+| A++ and High contrast on every screen; axe reports no serious problems | Passes |
+| Losing the network mid-save loses no input, and trying again makes no duplicate | Passes (the reply is lost after the server has saved, then Try again) |
+| Restarting the server does not sign anyone out or stop the jobs | Passes (M1 restart tests, jobs start with the server). |
+| A row typed by hand into the Sheet shows up in the app and on the calendar | Passes on the mock (M2 adoption, M5 calendar). |
+
+### Hosting
+
+The app is built to run as **one always-on Node process with a persistent disk** (SPEC §4.2, §14). That does not fit Vercel's serverless model, where the custom Express server cannot run, the sign-in file is not kept, the background jobs do not run, and the in-memory cache and undo links are lost between requests. See the README's deployment checklist for hosts that fit.

@@ -18,14 +18,14 @@ Ship the MVP: full test suites, accessibility gates, error states, PWA basics an
 
 ## Tasks
 
-- [ ] E2E suites for all flows listed in SPEC §12
-- [ ] Accessibility sweep and fixes
-- [ ] Error pages and messages (database not found, sign-in again, offline-save failure)
-- [ ] CSP nonce middleware, rate limiting
-- [ ] Manifest, icons, service worker for app shell
-- [ ] `README.md`, `docs/MAINTAINER.md`, `.env.example`
-- [ ] GitHub Actions CI
+- [x] E2E suites for all flows listed in SPEC §12
+- [x] Accessibility sweep and fixes
+- [x] Error pages and messages (database not found, sign-in again, offline-save failure)
+- [x] CSP nonce middleware, rate limiting
+- [x] Manifest, icons, service worker for app shell
+- [x] `README.md`, `docs/MAINTAINER.md`, `.env.example`
+- [x] GitHub Actions CI
 
 ## Definition of done
 
-The MVP acceptance checklist in SPEC §15 passes. Items that need a real Google account or a real phone are listed in `DECISIONS.md` for the maintainer to run. Tag `m7-done` and `v1.0.0`.
+The MVP acceptance checklist in SPEC §15 is recorded in `DECISIONS.md`. Items that need a real Google account or a real phone are listed there and in `docs/MAINTAINER.md` for the maintainer to run. Tag `m7-done` and `v1.0.0`.

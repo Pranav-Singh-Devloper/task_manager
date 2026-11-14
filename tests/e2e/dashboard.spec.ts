@@ -73,30 +73,30 @@ test.describe('upcoming and past', () => {
     await expect.poll(async () => (await ids(page)).length).toBeGreaterThan(0);
     const shown = await ids(page);
 
-    // Other tests add and delete meetings at the same time, so compare the order on screen with the server's order,
-    // and skip any meeting that has gone from the server's list in the meantime.
+    // Other tests add and delete meetings at the same time, so compare what is on screen with the server's order at that
+    // moment, skip any meeting that has gone from the server's list, and look again if the screen changed underneath.
     type Item = { id: string; values: { date: string; start_time: string } };
     const key = (m: Item) => `${m.values.date} ${m.values.start_time}`;
-    const check = async (scope: 'upcoming' | 'past', onScreen: string[]) => {
+    const inOrder = async (scope: 'upcoming' | 'past') => {
+      const onScreen = await ids(page);
       const all = (await api(page, `/meetings?scope=${scope}&limit=1000`)).meetings as Item[];
       const place = new Map(all.map((m, i) => [m.id, i]));
       const positions = onScreen
         .map((id) => place.get(id))
         .filter((p): p is number => p !== undefined);
-      expect(positions.length, `meetings from the ${scope} list are on screen`).toBeGreaterThan(0);
-      expect(positions).toEqual([...positions].sort((a, b) => a - b));
-      return all;
+      return positions.length > 0 && positions.every((p, i) => i === 0 || p >= positions[i - 1]!);
     };
 
-    const up = await check('upcoming', shown);
+    await expect.poll(() => inOrder('upcoming'), { message: 'upcoming is in order' }).toBe(true);
+    const up = (await api(page, '/meetings?scope=upcoming&limit=1000')).meetings as Item[];
     expect(up.map(key)).toEqual([...up.map(key)].sort());
 
     await page.getByRole('button', { name: 'Past', exact: true }).click();
     // Wait for the list to become the past list.
     await expect.poll(async () => (await ids(page)).some((id) => shown.includes(id))).toBe(false);
-    const pastShown = await ids(page);
-    expect(pastShown.length).toBeGreaterThan(0);
-    const past = await check('past', pastShown);
+    await expect.poll(async () => (await ids(page)).length).toBeGreaterThan(0);
+    await expect.poll(() => inOrder('past'), { message: 'past is in order' }).toBe(true);
+    const past = (await api(page, '/meetings?scope=past&limit=1000')).meetings as Item[];
     expect(past.map(key)).toEqual([...past.map(key)].sort().reverse());
   });
 

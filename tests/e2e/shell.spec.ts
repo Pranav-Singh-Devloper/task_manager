@@ -108,7 +108,10 @@ test.describe('readability', () => {
 
   test('text size A++ is remembered and does not break any page', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /^A\+\+/ }).click();
+    await page
+      .getByRole('banner')
+      .getByRole('button', { name: /^A\+\+/ })
+      .click();
     await expect(page.locator('html')).toHaveAttribute('data-text-size', '150');
     for (const path of PAGES) {
       await page.goto(path);
@@ -135,7 +138,10 @@ test.describe('readability', () => {
     page,
   }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /High contrast/ }).click();
+    await page
+      .getByRole('banner')
+      .getByRole('button', { name: /High contrast/ })
+      .click();
     await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high');
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high');
@@ -157,8 +163,14 @@ test.describe('accessibility (axe)', () => {
 
     test(`${path} has no serious violations at A++ with high contrast`, async ({ page }) => {
       await page.goto(path);
-      await page.getByRole('button', { name: /^A\+\+/ }).click();
-      await page.getByRole('button', { name: /High contrast/ }).click();
+      await page
+        .getByRole('banner')
+        .getByRole('button', { name: /^A\+\+/ })
+        .click();
+      await page
+        .getByRole('banner')
+        .getByRole('button', { name: /High contrast/ })
+        .click();
       expect(await seriousViolations(page)).toEqual([]);
     });
   }
