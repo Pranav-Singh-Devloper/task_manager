@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { DEV_SESSION_SECRET } from '../shared/session';
+import { parseKey } from './lib/crypto';
 
 /** An empty value in .env (for example `GOOGLE_CLIENT_ID=`) means "not set". */
 const optional = z.preprocess((v) => (v === '' ? undefined : v), z.string().optional());
@@ -58,8 +60,7 @@ const LIVE_REQUIRED = [
   'OWNER_EMAIL',
 ] as const;
 
-/** Development-only defaults, so the app starts in mock mode with no setup. */
-const DEV_SESSION_SECRET = 'dev-only-session-secret-change-me-0123456789';
+/** Development-only default, so the app starts in mock mode with no setup. */
 const DEV_OWNER_EMAIL = 'owner@example.com';
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
@@ -84,6 +85,8 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   if (e.SESSION_SECRET && e.SESSION_SECRET.length < 32) {
     throw new Error('Invalid environment: SESSION_SECRET must be at least 32 characters');
   }
+
+  if (e.TOKEN_ENCRYPTION_KEY) parseKey(e.TOKEN_ENCRYPTION_KEY);
 
   const ownerEmail = (e.OWNER_EMAIL ?? DEV_OWNER_EMAIL).toLowerCase();
   const allowed = (e.ALLOWED_EMAILS ?? '')
