@@ -6,6 +6,8 @@ import { ValidationFailed } from '../lib/errors';
 import type { DataLayer } from '../services/data';
 import type { Actor } from '../services/meetings';
 import { createCategory } from '../services/categories';
+import { FILTER_OPS } from '../../shared/filters';
+import { parseDateLoose } from '../../shared/dates';
 import { updateSettings } from '../services/settings';
 
 const unreadable = () =>
@@ -55,6 +57,53 @@ const completeBody = z.object({
 });
 const categoryBody = z.object({ name: z.string(), color: z.string() });
 
+const filterSpec = z.object({
+  field: z.string().min(1).max(100),
+  op: z.enum(FILTER_OPS),
+  value: z.string().max(500).optional(),
+  value2: z.string().max(500).optional(),
+});
+const flag = z.enum(['1', 'true']).optional();
+const dateParam = z
+  .string()
+  .optional()
+  .transform((v, ctx) => {
+    if (!v) return undefined;
+    const d = parseDateLoose(v);
+    if (!d) ctx.addIssue({ code: 'custom', message: 'bad date' });
+    return d ?? undefined;
+  });
+const listQuery = z.object({
+  scope: z.enum(['upcoming', 'past', 'all']).default('all'),
+  category: z.string().max(100).optional(),
+  workspace: z.string().max(100).optional(),
+  status: z.string().max(40).optional(),
+  q: z.string().max(200).optional(),
+  from: dateParam,
+  to: dateParam,
+  sort: z.string().max(100).optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
+  filters: z
+    .string()
+    .max(10_000)
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return [];
+      try {
+        const parsed = z.array(filterSpec).max(20).safeParse(JSON.parse(v));
+        if (parsed.success) return parsed.data;
+      } catch {
+        // fall through
+      }
+      ctx.addIssue({ code: 'custom', message: 'bad filters' });
+      return [];
+    }),
+  awaiting: flag,
+  incomplete: flag,
+  limit: z.coerce.number().int().min(1).max(1000).default(50),
+  cursor: z.coerce.number().int().min(0).default(0),
+});
+
 const actorOf = (req: Request): Actor => ({
   email: ((req.res?.locals.session ?? {}) as VerifiedSession).email,
   source: 'app',
@@ -65,18 +114,37 @@ export function meetingsRouter(data: DataLayer): Router {
   const router = Router();
 
   router.get('/meetings', async (req, res) => {
+    const parsed = listQuery.safeParse(req.query);
+    if (!parsed.success) throw unreadable();
+    const q = parsed.data;
     const { meetings } = await data.use();
-    const q = req.query;
-    const scope =
-      q.scope === 'upcoming' || q.scope === 'past' || q.scope === 'all' ? q.scope : 'all';
-    res.json({
-      meetings: await meetings.list({
-        scope,
-        category: typeof q.category === 'string' ? q.category : undefined,
-        workspace: typeof q.workspace === 'string' ? q.workspace : undefined,
-        status: typeof q.status === 'string' ? q.status : undefined,
-      }),
+    const page = await meetings.query({
+      scope: q.scope,
+      category: q.category,
+      workspace: q.workspace,
+      status: q.status,
+      q: q.q,
+      from: q.from,
+      to: q.to,
+      sort: q.sort,
+      dir: q.dir,
+      filters: q.filters,
+      awaiting: Boolean(q.awaiting),
+      incomplete: Boolean(q.incomplete),
+      limit: q.limit,
+      offset: q.cursor,
     });
+    res.json({
+      meetings: page.meetings,
+      total: page.total,
+      next_cursor: page.nextOffset === null ? null : String(page.nextOffset),
+    });
+  });
+
+  /** The top of the dashboard: the next meeting, and how many need attention. Must come before /meetings/:id. */
+  router.get('/meetings/summary', async (_req, res) => {
+    const { meetings } = await data.use();
+    res.json(await meetings.summary());
   });
 
   router.get('/meetings/:id', async (req, res) => {
@@ -131,6 +199,13 @@ export function meetingsRouter(data: DataLayer): Router {
     const revision = parse(rev, Number(req.query.rev));
     const { meetings } = await data.use();
     const r = await meetings.remove(String(req.params.id), revision, actorOf(req));
+    res.json({ meeting: r.meeting, undo_token: r.undoToken });
+  });
+
+  router.post('/meetings/:id/dismiss-waiting', async (req, res) => {
+    const body = parse(z.object({ rev }), req.body);
+    const { meetings } = await data.use();
+    const r = await meetings.dismissWaiting(String(req.params.id), body.rev, actorOf(req));
     res.json({ meeting: r.meeting, undo_token: r.undoToken });
   });
 

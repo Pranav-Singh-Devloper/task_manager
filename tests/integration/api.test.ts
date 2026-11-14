@@ -465,3 +465,101 @@ describe('done flow and categories over HTTP', () => {
     expect((await s.get('/api/categories', json(cookie, { name: 'X' }))).status).toBe(400);
   });
 });
+
+describe('finding meetings over HTTP', () => {
+  const get = async (cookie: string, query: string) => {
+    const res = await s.get(`/api/meetings?${query}`, withSession(cookie));
+    return { res, body: await res.json() };
+  };
+
+  it('searches, filters, sorts and pages in one request', async () => {
+    const { cookie } = await boot();
+    const search = await get(cookie, 'q=laning');
+    expect(search.body.total).toBe(4);
+    const filtered = await get(
+      cookie,
+      `q=laning&filters=${encodeURIComponent(JSON.stringify([{ field: 'state', op: 'is', value: 'Rajasthan' }]))}`,
+    );
+    expect(filtered.body.total).toBe(1);
+
+    const page1 = await get(cookie, 'sort=title&dir=asc&limit=5');
+    expect(page1.body.meetings).toHaveLength(5);
+    expect(page1.body.total).toBe(15);
+    expect(page1.body.next_cursor).toBe('5');
+    const page3 = await get(cookie, 'sort=title&dir=asc&limit=5&cursor=10');
+    expect(page3.body.meetings).toHaveLength(5);
+    expect(page3.body.next_cursor).toBeNull();
+    const titles = [
+      ...page1.body.meetings,
+      ...(await get(cookie, 'sort=title&dir=asc&limit=5&cursor=5')).body.meetings,
+      ...page3.body.meetings,
+    ].map((m: { title: string }) => m.title.toLowerCase());
+    expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b, 'en', { numeric: true })));
+  });
+
+  it('limits by date range and by the simple filters', async () => {
+    const { cookie } = await boot();
+    expect((await get(cookie, 'from=2100-01-01')).body.total).toBe(0);
+    expect((await get(cookie, 'from=01/01/2000&to=31/12/2100')).body.total).toBe(15);
+    expect((await get(cookie, 'category=ccie&status=Completed')).body.total).toBe(2);
+    expect((await get(cookie, 'workspace=phd')).body.total).toBe(2);
+  });
+
+  it('says plainly when the request cannot be read', async () => {
+    const { cookie } = await boot();
+    for (const bad of [
+      'scope=sometimes',
+      'filters=not-json',
+      'from=whenever',
+      'limit=0',
+      'limit=5000',
+      'dir=sideways',
+      `filters=${encodeURIComponent(JSON.stringify([{ field: 'x', op: 'nope' }]))}`,
+    ]) {
+      const { res, body } = await get(cookie, bad);
+      expect(res.status, bad).toBe(400);
+      expect(body.error.message).toBe(
+        'That request was not understood. Please reload the page and try again.',
+      );
+    }
+  });
+
+  it('summary gives the next meeting and the counts', async () => {
+    const { cookie } = await boot();
+    const res = await s.get('/api/meetings/summary', withSession(cookie));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.next).toBeTruthy();
+    expect(body.next.values.date >= '2000-01-01').toBe(true);
+    expect(body).toMatchObject({ incomplete: 0, waiting: 0 });
+  });
+
+  it('dismisses waiting for a next date', async () => {
+    const { cookie } = await boot();
+    const upcoming = (await get(cookie, 'category=ccie&scope=upcoming')).body.meetings[0];
+    const done = await (
+      await s.get(
+        `/api/meetings/${upcoming.id}/complete`,
+        json(cookie, { awaiting_next: true, rev: upcoming.rev }),
+      )
+    ).json();
+    expect((await (await s.get('/api/meetings/summary', withSession(cookie))).json()).waiting).toBe(
+      1,
+    );
+    const res = await s.get(
+      `/api/meetings/${upcoming.id}/dismiss-waiting`,
+      json(cookie, { rev: done.meeting.rev }),
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).meeting.awaiting_next).toBe(false);
+    expect((await (await s.get('/api/meetings/summary', withSession(cookie))).json()).waiting).toBe(
+      0,
+    );
+  });
+
+  it('shows how many times each meeting has been rescheduled', async () => {
+    const { cookie } = await boot();
+    const list = (await get(cookie, 'status=Rescheduled')).body.meetings;
+    expect(list[0].reschedule_count).toBe(1);
+  });
+});
