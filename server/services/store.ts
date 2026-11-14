@@ -1,7 +1,7 @@
 import type { Logger } from 'pino';
 import { isUpcoming } from '../../shared/dates';
 import { newId } from '../../shared/ids';
-import type { SystemFields } from '../../shared/meeting';
+import type { FileRecord, SystemFields } from '../../shared/meeting';
 import { SYSTEM_COLUMNS, TAB } from '../../shared/schema';
 import type { Cell, FieldValue } from '../../shared/types';
 import { KeyedMutex } from '../lib/mutex';
@@ -50,6 +50,8 @@ export interface Snapshot {
   rescheduleCounts: Map<string, number>;
   /** Names of the files attached to each meeting, so search can find them. */
   fileNames: Map<string, string[]>;
+  /** Every file row that is not removed, by meeting id (pending and attached). */
+  files: Map<string, FileRecord[]>;
 }
 
 export interface StoreOptions {
@@ -66,6 +68,41 @@ function countBy(rows: Cell[][], column: string): Map<string, number> {
   for (const r of rows.slice(1)) {
     const key = String(r[col] ?? '').trim();
     if (key) out.set(key, (out.get(key) ?? 0) + 1);
+  }
+  return out;
+}
+
+/** Reads the _files tab into records, skipping rows with no id or meeting. */
+export function fileRecordsOf(rows: Cell[][]): FileRecord[] {
+  const h = headerOf(rows);
+  const at = (r: Cell[], key: string) => String(r[h.indexOf(key)] ?? '').trim();
+  const out: FileRecord[] = [];
+  for (const r of rows.slice(1)) {
+    const id = at(r, 'id');
+    const meeting_id = at(r, 'meeting_id');
+    if (!id || !meeting_id) continue;
+    const status = at(r, 'status');
+    out.push({
+      id,
+      meeting_id,
+      category_slug: at(r, 'category_slug'),
+      name: at(r, 'name'),
+      mime: at(r, 'mime'),
+      size: Number(at(r, 'size')) || 0,
+      drive_file_id: at(r, 'drive_file_id'),
+      view_link: at(r, 'view_link'),
+      status: status === 'pending' || status === 'removed' ? status : 'attached',
+      uploaded_at: at(r, 'uploaded_at'),
+    });
+  }
+  return out;
+}
+
+function groupFiles(records: FileRecord[]): Map<string, FileRecord[]> {
+  const out = new Map<string, FileRecord[]>();
+  for (const f of records) {
+    if (f.status === 'removed') continue;
+    out.set(f.meeting_id, [...(out.get(f.meeting_id) ?? []), f]);
   }
   return out;
 }
@@ -190,6 +227,7 @@ export class SheetStore {
       raw,
       rescheduleCounts: countBy(rowsOf(TAB.reschedules), 'meeting_id'),
       fileNames: fileNamesOf(rowsOf(TAB.files)),
+      files: groupFiles(fileRecordsOf(rowsOf(TAB.files))),
     };
     this.snap = snap;
     this.groupCounts.clear();
@@ -416,6 +454,34 @@ export class SheetStore {
   noteReschedule(meetingId: string): void {
     const counts = this.snap?.rescheduleCounts;
     if (counts) counts.set(meetingId, (counts.get(meetingId) ?? 0) + 1);
+  }
+
+  /** The settings as last loaded, or null before the first load. */
+  currentSettings(): Config['settings'] | null {
+    return this.snap?.config.settings ?? null;
+  }
+
+  /** Files attached to a saved meeting, oldest first. */
+  attachedFiles(meetingId: string): FileRecord[] {
+    return (this.snap?.files.get(meetingId) ?? []).filter((f) => f.status === 'attached');
+  }
+
+  /** Every file row for a meeting that is not removed. */
+  filesFor(meetingId: string): FileRecord[] {
+    return this.snap?.files.get(meetingId) ?? [];
+  }
+
+  /** Re-reads the _files tab after it was changed, so the cache matches the Sheet. */
+  async reloadFiles(): Promise<void> {
+    const snap = await this.snapshot();
+    const tab = snap.tabs.find((t) => t.title === TAB.files);
+    if (!tab) return;
+    const rows = (await this.google.sheets.batchGet(this.spreadsheetId, [tab.gid]))[tab.gid] ?? [];
+    snap.raw.set(tab.gid, rows);
+    snap.files = groupFiles(fileRecordsOf(rows));
+    snap.fileNames = fileNamesOf(rows);
+    this.version += 1;
+    snap.version = this.version;
   }
 
   rescheduleCount(meetingId: string): number {

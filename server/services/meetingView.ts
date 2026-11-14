@@ -52,6 +52,9 @@ export function toMeeting(store: SheetStore, snap: Snapshot, slug: string, entry
     calendar_sync: system.calendar_sync,
     previous_id: system.previous_id,
     series_id: system.series_id,
+    files: store
+      .attachedFiles(system.id)
+      .map((f) => ({ id: f.id, name: f.name, mime: f.mime, size: f.size, view_link: f.view_link })),
     awaiting_next: system.awaiting_next,
     reschedule_count: store.rescheduleCount(system.id),
     needs_attention: problems,
