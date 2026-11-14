@@ -17,19 +17,19 @@ Let the maintainer (and the father) see raw tables like Excel and change the sch
 
 ## Tasks
 
-- [ ] Admin routes (`/admin/tables`, `/admin/categories`, `/admin/fields`, `/admin/trash`, `/admin/log`, `/admin/backups`, `/admin/health`, `/admin/export`)
-- [ ] Sheet header sync on column add, rename and archive
-- [ ] AG Grid page with type-aware editors and computed badges
-- [ ] Columns & categories manager pages
-- [ ] Backup service (`files.copy`, explicit `appProperties`) and activation
-- [ ] Trash, change log and health pages
-- [ ] Playwright flows: admin add column shows in form, table and Sheet header; archive; trash restore; backup switch; injected calendar failure shows in health
+- [x] Admin routes (`/admin/tables`, `/admin/categories`, `/admin/fields`, `/admin/trash`, `/admin/log`, `/admin/backups`, `/admin/health`, `/admin/export`)
+- [x] Sheet header sync on column add, rename and archive
+- [x] AG Grid page with type-aware editors and computed badges
+- [x] Columns & categories manager pages
+- [x] Backup service (`files.copy`, explicit `appProperties`) and activation
+- [x] Trash, change log and health pages
+- [x] Playwright flows: admin add column shows in form, table and Sheet header; archive; trash restore; backup switch; injected calendar failure shows in health
 
 ## Definition of done
 
-- A column added in Admin appears immediately in the form, the table and the Sheet header.
-- Archiving hides it but keeps the data.
-- Permanent removal needs a typed confirmation and creates a backup first.
-- Switching to a backup works with one button.
-- System health reflects an injected calendar failure.
+- [x] A column added in Admin appears immediately in the form, the table and the Sheet header.
+- [x] Archiving hides it but keeps the data.
+- [x] Permanent removal needs a typed confirmation and creates a backup first.
+- [x] Switching to a backup works with one button.
+- [x] System health reflects an injected calendar failure.
 - Tag `m6-done`.

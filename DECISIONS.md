@@ -122,3 +122,19 @@ Run against the owner's own Google account in live mode. Test data (a calendar e
 - **Testing a calendar outage.** In mock mode, a meeting whose title contains `calendar-down-once` finds Calendar down the first time and fine on the next try. Nothing global is switched, so tests running side by side do not disturb each other. `MOCK_FAIL=calendar` still breaks it for everyone.
 - **Not re-run on a real Google account in this phase.** The Drive and Calendar calls are the ones verified in M1, and the mock enforces the same id and reminder rules. A real run (upload a PDF, cancel and restore) belongs to the final check with the owner.
 - **Still to do:** a "Trash" place to see removed files and meetings arrives with Admin in M6. Two-way calendar sync is Phase 2.
+
+## 2026-11-14 (M6: Admin)
+
+- **Admin is six tabs, one level**, each its own address (`/admin/tables`, `/columns`, `/trash`, `/log`, `/backups`, `/health`). On a phone it says "Admin works best on a computer" with a Continue anyway button.
+- **A cell edited in the grid goes through the meeting service**, the same as the forms: version check, validation, change log (marked "admin"), calendar and reschedule history. Config and log tables are read-only, and `_system` is never listed.
+- **"Add row" opens the normal new-meeting form for that category.** A blank grid row would skip the required-field rules, so it is not offered.
+- **A new column is only a row in `_fields`.** On reload the Sheet header gets the column added, and the form, table, filters and search read the same config. Its key comes from its name and never changes.
+- **Hide keeps the data; "Remove for good" does not.** Removing needs the column's name typed and takes a backup first. It deletes the definition and clears the column's cells and header. A category can only be removed when it has no meetings, with the same typed name and backup. Its Sheet tab is left in place, because removing a tab is the one step that cannot be taken back.
+- **Type changes follow §9 rule 13.** Text, long text and choose-one can change into each other, and a number can become text. Anything else is blocked with a plain reason. Changing to choose-one is blocked while existing answers are missing from the list, and the screen says how many.
+- **Columns every meeting needs cannot be hidden, retyped or made optional.** They can be renamed and shown in the table.
+- **Delete forever** needs the word DELETE, works only from the Trash, removes the Sheet row, moves the Drive files to the Drive trash and keeps a `purge` entry in the log.
+- **Backups** are full copies tagged `role: backup` (set explicitly, since copying drops the tag). "Use this backup" backs up the current data first, swaps the two tags, and points the app at the chosen copy. The last 30 are kept.
+- **Excel and CSV exports keep text that starts with = + - or @ as text.** Excel export uses ExcelJS 4.4.
+- **AG Grid 33 is pinned.** axe reports one rule (`aria-required-children`) on the grid's own header wrapper. It is skipped for the grid in the tests only; every other rule is still checked there.
+- **Tests that start a server now bind to 127.0.0.1.** Another program on this computer was sometimes answering on the same port number, which made sign-in fail at random.
+- **Not built:** Tasks tab editing and the P2 live form preview (Phase 2).
