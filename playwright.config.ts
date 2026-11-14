@@ -6,8 +6,15 @@ const PORT = 3100;
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
+  globalSetup: './tests/e2e/global-setup.ts',
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    trace: 'retain-on-failure',
+    // Everyone starts signed in through the mock Google flow. Login tests opt out.
+    storageState: 'tests/e2e/.auth/state.json',
+  },
   projects: [
     { name: 'mobile', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } } },
     {
