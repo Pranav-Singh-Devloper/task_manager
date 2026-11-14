@@ -31,7 +31,7 @@ export class ConflictError extends AppError {
 }
 
 export class ValidationFailed extends AppError {
-  constructor(issues: ValidationIssue[], message?: string) {
+  constructor(issues: ValidationIssue[], message?: string, details?: Record<string, unknown>) {
     super(
       400,
       'invalid',
@@ -43,6 +43,7 @@ export class ValidationFailed extends AppError {
             : '1 thing needs your attention.'
           : `${issues.length} things need your attention.`),
       issues,
+      details,
     );
   }
 }

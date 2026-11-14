@@ -504,13 +504,17 @@ export class MeetingService {
       let reschedule: Plan['reschedule'];
       if (timeChanged) {
         if (before === 'Completed' && !options.confirmCompleted) {
-          throw new ValidationFailed([
-            {
-              field: 'form',
-              message:
-                'This meeting is already marked done. Please confirm that you want to change its time.',
-            },
-          ]);
+          throw new ValidationFailed(
+            [
+              {
+                field: 'form',
+                message:
+                  'This meeting is already marked done. Please confirm that you want to change its time.',
+              },
+            ],
+            undefined,
+            { needs_confirmation: 'completed' },
+          );
         }
         if (after === before && (before === 'Scheduled' || before === 'Rescheduled'))
           next.meeting_status = 'Rescheduled';

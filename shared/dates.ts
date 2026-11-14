@@ -180,3 +180,13 @@ export function friendlyTime(time: string, style: '12h' | '24h' = '12h'): string
   const [h, m] = time.split(':').map(Number) as [number, number];
   return `${h % 12 === 0 ? 12 : h % 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}`;
 }
+
+/**
+ * The next date after `today` that falls on the same weekday as `from`, at least `weeks` weeks on.
+ * "Same time next week" for a meeting last Wednesday is the first Wednesday in the future.
+ */
+export function sameWeekdayAfter(from: string, weeks: number, today: string): string {
+  let d = shiftDate(from, weeks * 7);
+  while (d <= today) d = shiftDate(d, 7);
+  return d;
+}

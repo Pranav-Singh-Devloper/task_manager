@@ -154,3 +154,21 @@ describe('times and friendly dates', () => {
     expect(friendlyTime('17:45', '24h')).toBe('17:45');
   });
 });
+
+describe('sameWeekdayAfter', () => {
+  it('is one week on when that is still ahead', async () => {
+    const { sameWeekdayAfter } = await import('../../shared/dates');
+    expect(sameWeekdayAfter('2026-11-17', 1, '2026-11-14')).toBe('2026-11-24');
+    expect(sameWeekdayAfter('2026-11-17', 2, '2026-11-14')).toBe('2026-12-01');
+  });
+  it('keeps the weekday but skips dates that have passed', async () => {
+    const { sameWeekdayAfter } = await import('../../shared/dates');
+    // The meeting was Tue 3 Nov; today is Sat 14 Nov. A week on (10 Nov) has passed, so the next Tuesday is 17 Nov.
+    expect(sameWeekdayAfter('2026-11-03', 1, '2026-11-14')).toBe('2026-11-17');
+    expect(sameWeekdayAfter('2026-11-03', 2, '2026-11-14')).toBe('2026-11-17');
+  });
+  it('never returns today', async () => {
+    const { sameWeekdayAfter } = await import('../../shared/dates');
+    expect(sameWeekdayAfter('2026-11-07', 1, '2026-11-14')).toBe('2026-11-21');
+  });
+});

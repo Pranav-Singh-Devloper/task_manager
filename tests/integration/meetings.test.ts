@@ -466,6 +466,7 @@ describe('reschedule', () => {
       .catch((e) => e);
     expect(err).toBeInstanceOf(ValidationFailed);
     expect(err.issues[0].message).toMatch(/already marked done/);
+    expect(err.details).toEqual({ needs_confirmation: 'completed' });
     const ok = await meetings.reschedule(
       meeting.id,
       { date: '2026-12-09', start_time: '10:30', rev: done.meeting.rev, confirmCompleted: true },
