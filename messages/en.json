@@ -1,0 +1,89 @@
+{
+  "common": {
+    "appName": "Meetings Manager",
+    "skipToContent": "Skip to content",
+    "close": "Close",
+    "cancel": "Cancel",
+    "undo": "Undo",
+    "loading": "Loading…",
+    "required": "(Required)",
+    "optional": "(Optional)",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "label": "Main menu",
+    "dashboard": "Dashboard",
+    "tasks": "Tasks",
+    "cases": "Cases",
+    "admin": "Admin",
+    "settings": "Settings",
+    "newMeeting": "+ New meeting",
+    "menu": "Menu",
+    "closeMenu": "Close menu"
+  },
+  "topbar": {
+    "textSize": "Text size",
+    "textSizeNormal": "Normal text size",
+    "textSizeLarge": "Larger text size",
+    "textSizeLargest": "Largest text size",
+    "sizeNormal": "A",
+    "sizeLarge": "A+",
+    "sizeLargest": "A++",
+    "highContrast": "High contrast",
+    "on": "On",
+    "off": "Off",
+    "signedInAs": "Signed in as {name}",
+    "demoUser": "Demo user"
+  },
+  "combobox": {
+    "add": "Add “{value}”",
+    "noMatches": "No matches"
+  },
+  "dashboard": {
+    "title": "Your meetings",
+    "placeholder": "Your upcoming meetings will appear here."
+  },
+  "admin": {
+    "title": "Admin",
+    "placeholder": "Tables and settings for the app will appear here."
+  },
+  "settings": {
+    "title": "Settings",
+    "placeholder": "Your settings will appear here."
+  },
+  "newMeeting": {
+    "title": "New meeting",
+    "placeholder": "Adding a meeting will be available here soon."
+  },
+  "design": {
+    "title": "Component check",
+    "intro": "Every building block of the app, shown once. Used to check size, contrast and keyboard use.",
+    "buttons": "Buttons",
+    "primary": "Save meeting",
+    "outline": "Cancel",
+    "danger": "Delete meeting",
+    "fields": "Form fields",
+    "topic": "Topic",
+    "topicHint": "A short name for this meeting.",
+    "topicError": "Please add a topic.",
+    "category": "Category",
+    "categoryPlaceholder": "Choose a category",
+    "state": "State",
+    "statePlaceholder": "Type or choose a state",
+    "status": "Status",
+    "scheduled": "Scheduled",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "chips": "Chips",
+    "card": "Card",
+    "cardTitle": "Next meeting",
+    "cardBody": "Mon, 17 Nov 2026 at 10:30 AM",
+    "showToast": "Show a notice with Undo",
+    "toastMessage": "Meeting cancelled.",
+    "openDialog": "Show a confirmation",
+    "dialogTitle": "Delete this meeting?",
+    "dialogBody": "You can bring it back from Trash.",
+    "dialogConfirm": "Delete"
+  }
+}
