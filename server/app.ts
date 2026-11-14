@@ -4,6 +4,7 @@ import type { Logger } from 'pino';
 import type { Env } from './env';
 import { requireSession } from './middleware/session';
 import { authRouter } from './routes/auth';
+import { adminRouter } from './routes/admin';
 import { calendarRouter, filesRouter } from './routes/files';
 import { healthRouter } from './routes/health';
 import { meetingsRouter } from './routes/meetings';
@@ -45,6 +46,7 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
   api.use(metaRouter(data));
   api.use(meetingsRouter(data));
   api.use(filesRouter(data));
+  api.use(adminRouter(data));
   api.use(calendarRouter(data));
   api.use((_req, res) => {
     res.status(404).json({ error: { code: 'not_found', message: 'We could not find that.' } });
