@@ -35,7 +35,9 @@ test.describe('creating a meeting', () => {
       page.getByRole('heading', { name: `CCIE — ${project} (${caseId})` }),
     ).toBeVisible();
     await expect(page.getByText('Tomorrow · 10:30 AM to 12:30 PM')).toBeVisible();
-    await expect(page.getByText('Meeting saved.', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Meeting saved and added to your Google Calendar.', { exact: true }),
+    ).toBeVisible();
     await expect(page.getByText('Scheduled', { exact: true }).first()).toBeVisible();
   });
 
@@ -84,7 +86,9 @@ test.describe('creating a meeting', () => {
     await field(page, 'case_id').fill(`C-${uid()}`);
     await field(page, 'project_name').fill('Learning check');
     await page.getByRole('button', { name: 'Save meeting' }).click();
-    await expect(page.getByText('Meeting saved.', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Meeting saved and added to your Google Calendar.', { exact: true }),
+    ).toBeVisible();
 
     await page.goto('/meetings/new?category=ccie');
     await page.getByRole('combobox', { name: /^PIU/ }).click();
