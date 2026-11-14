@@ -186,7 +186,12 @@ export class MeetingService {
   }
 
   /** What the dashboard's top needs: the next meeting, and how many need attention. */
-  async summary(): Promise<{ next: Meeting | null; incomplete: number; waiting: number }> {
+  async summary(): Promise<{
+    next: Meeting | null;
+    incomplete: number;
+    waiting: number;
+    unsynced: number;
+  }> {
     const snap = await this.store.snapshot();
     const upcoming = queryMeetings(this.store, snap, {
       scope: 'upcoming',
@@ -195,10 +200,21 @@ export class MeetingService {
     }).meetings;
     const incomplete = queryMeetings(this.store, snap, { incomplete: true }).total;
     const waiting = queryMeetings(this.store, snap, { awaiting: true }).total;
+    // Meetings that should be on the calendar and are not (yet): the "Fix now" line.
+    let unsynced = 0;
+    for (const data of snap.categories.values()) {
+      for (const e of data.entries.values()) {
+        const s = e.record.system;
+        if (!s.deleted_at && (s.calendar_sync === 'error' || s.calendar_sync === 'pending')) {
+          unsynced += 1;
+        }
+      }
+    }
     return {
       next: upcoming.find((m) => isOpenStatus(m.values.meeting_status)) ?? null,
       incomplete,
       waiting,
+      unsynced,
     };
   }
 
