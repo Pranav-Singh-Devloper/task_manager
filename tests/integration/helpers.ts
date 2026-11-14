@@ -29,7 +29,9 @@ export async function startServer(
   const mock = await createMockGoogle(options);
   const env = loadEnv({ OWNER_EMAIL: OWNER, ALLOWED_EMAILS: `${OWNER},${SON}`, ...extraEnv });
   const app = createApp({ env, google: mock.services, logger: createLogger('silent') });
-  const server = http.createServer(app).listen(0);
+  // Bound to IPv4 loopback so another program listening on the same port number cannot answer instead.
+  const server = http.createServer(app).listen(0, '127.0.0.1');
+  await new Promise<void>((resolve) => server.once('listening', resolve));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
   const get = (path: string, init: RequestInit = {}) =>
@@ -39,7 +41,7 @@ export async function startServer(
     const cookie = res.headers.getSetCookie().find((c) => c.startsWith('mm_session='));
     if (!cookie)
       throw new Error(
-        `Sign-in as ${email} did not set a session (went to ${res.headers.get('location')})`,
+        `Sign-in as ${email} did not set a session (status ${res.status}, went to ${res.headers.get('location')}, body ${(await res.text()).slice(0, 200)})`,
       );
     return cookie.split(';')[0] as string;
   };
