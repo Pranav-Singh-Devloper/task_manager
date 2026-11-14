@@ -27,6 +27,8 @@ export function createApp({ env, google, logger }: AppDeps): Express {
   });
   app.use('/api', api);
 
+  // Express only treats a handler as an error handler when it takes four arguments.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const onError: ErrorRequestHandler = (err, req, res, _next) => {
     logger.error({ err, path: req.path }, 'request failed');
     if (res.headersSent) return;
