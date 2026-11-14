@@ -7,7 +7,6 @@ import { authRouter } from './routes/auth';
 import { healthRouter } from './routes/health';
 import { meetingsRouter } from './routes/meetings';
 import { metaRouter } from './routes/meta';
-import { spikeRouter } from './routes/spike';
 import { AppError } from './lib/errors';
 import { DataLayer } from './services/data';
 import { isGoogleApiError } from './services/google/errors';
@@ -39,7 +38,6 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
   const data = new DataLayer(google, { logger });
   api.use(metaRouter(data));
   api.use(meetingsRouter(data));
-  api.use('/spike', spikeRouter(env, google));
   api.use((_req, res) => {
     res.status(404).json({ error: { code: 'not_found', message: 'We could not find that.' } });
   });

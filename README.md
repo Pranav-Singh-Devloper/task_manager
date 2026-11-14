@@ -13,7 +13,7 @@ Other scripts: `npm test` (unit and integration), `npm run test:e2e` (browser te
 
 To rehearse failures, start with for example `MOCK_FAIL=calendar npm run dev`.
 
-Copy `.env.example` to `.env` to change settings. In mock mode, `/api/auth/google?as=someone@example.com` signs in as that address, which is how the "wrong account" and "not set up yet" messages are tried out. The page at `/spike` is a plain test form that saves one meeting to the Sheet, Calendar and Drive.
+Copy `.env.example` to `.env` to change settings. In mock mode, `/api/auth/google?as=someone@example.com` signs in as that address, which is how the "wrong account" and "not set up yet" messages are tried out.
 
 ## Connect it to real Google
 
