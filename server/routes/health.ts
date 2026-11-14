@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Env } from '../env';
 import type { GoogleServices } from '../services/google/types';
 
-export const APP_VERSION = '0.1.0';
+export const APP_VERSION = '1.0.0';
 
 export function healthRouter(env: Env, google: GoogleServices): Router {
   const router = Router();

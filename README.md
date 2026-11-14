@@ -42,7 +42,8 @@ Checklist:
 - [ ] A persistent volume mounted at `DATA_DIR` (it holds `state.json`). If it is ever lost, the owner signs in once more and the same spreadsheet is found again.
 - [ ] An HTTPS address, set as `APP_URL`, and the same address plus `/api/auth/google/callback` registered as the redirect URI in Google.
 - [ ] All variables from [.env.example](.env.example) set, with `GOOGLE_MODE=live`. Never commit `.env`.
-- [ ] Build with `npm ci && npm run build`, start with `npm start`.
+- [ ] Build with `npm ci && npm run build`, start with `npm start`. Or use the included [Dockerfile](Dockerfile): `docker build -t meetings-manager .`, then run it with the variables above and a volume on `/data`.
+- [ ] On Render, [render.yaml](render.yaml) describes the service (one instance, a 1 GB disk at `/data`, the health check). Create it with New, Blueprint, and fill in the values marked as secret. Railway and Fly.io work the same way from the Dockerfile.
 - [ ] An outside uptime checker (for example UptimeRobot) watching `GET /api/health`, set to alert the maintainer.
 - [ ] The Google app **published** (see step 7 above), using the deployed home page and a privacy policy link.
 - [ ] The first sign-in done by the owner with the maintainer present. That creates the database.

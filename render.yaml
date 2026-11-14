@@ -1,0 +1,29 @@
+# Render Blueprint: one always-on web service with a persistent disk.
+# Create it from the Render dashboard (New, Blueprint) and fill in the values marked sync: false.
+services:
+  - type: web
+    name: meetings-manager
+    runtime: docker
+    plan: starter            # a paid plan: free plans sleep and have no persistent disk
+    numInstances: 1          # the app must run as a single instance
+    healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - { key: NODE_ENV, value: production }
+      - { key: GOOGLE_MODE, value: live }
+      - { key: DATA_DIR, value: /data }
+      - { key: TZ, value: UTC }
+      - { key: DEFAULT_TIMEZONE, value: Asia/Kolkata }
+      - { key: MAX_UPLOAD_MB, value: "50" }
+      - { key: LOG_LEVEL, value: info }
+      - { key: APP_URL, sync: false }              # https://<your-service>.onrender.com or your own domain
+      - { key: GOOGLE_REDIRECT_URI, sync: false }  # APP_URL + /api/auth/google/callback
+      - { key: GOOGLE_CLIENT_ID, sync: false }
+      - { key: GOOGLE_CLIENT_SECRET, sync: false }
+      - { key: OWNER_EMAIL, sync: false }
+      - { key: ALLOWED_EMAILS, sync: false }
+      - { key: SESSION_SECRET, generateValue: true }
+      - { key: TOKEN_ENCRYPTION_KEY, sync: false } # openssl rand -base64 32
