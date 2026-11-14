@@ -151,7 +151,16 @@
     "calDay_meetings": "Meetings on {date}",
     "calNothing": "Nothing on this day.",
     "calLoading": "Loading the calendar…",
-    "loadFailed": "We couldn't load your meetings. Nothing was changed."
+    "loadFailed": "We couldn't load your meetings. Nothing was changed.",
+    "colFiles": "Files",
+    "fileCount": "{count, plural, one {1 file} other {# files}}",
+    "openFile": "Open file",
+    "seeFiles": "See files",
+    "notOnCalendar": "Not on your calendar yet",
+    "attentionUnsynced": "{count, plural, one {1 meeting isn't on your calendar yet.} other {# meetings aren't on your calendar yet.}}",
+    "fixNow": "Fix now",
+    "fixedCalendar": "Everything is on your calendar now.",
+    "stillNotOnCalendar": "We still couldn't reach your calendar. We will keep trying."
   },
   "admin": {
     "title": "Admin",
@@ -221,7 +230,7 @@
   "form": {
     "sectionWhen": "When",
     "sectionAbout": "About this meeting",
-    "sectionLink": "Link",
+    "sectionLink": "Link and files",
     "sectionNotes": "Notes",
     "sectionReminders": "Reminders",
     "sectionWorkspace": "Workspace",
@@ -264,7 +273,11 @@
     "unsaved": "Your changes",
     "yes": "Yes",
     "no": "No",
-    "clear": "Clear choice"
+    "clear": "Clear choice",
+    "filesHeading": "Files",
+    "filesExpired": "Some files need to be added again before you save. Remove them or use Add files.",
+    "savedOnCalendar": "Meeting saved and added to your Google Calendar.",
+    "savedNoCalendar": "Meeting saved. It is not on your calendar yet. You can try again from the meeting page."
   },
   "detail": {
     "title": "Meeting",
@@ -324,7 +337,18 @@
     "undoFailed": "This can't be undone because the meeting has changed since.",
     "actionFailed": "We couldn't do that. Nothing was changed. Please try again.",
     "defaultReminders": "Your usual reminders",
-    "movedFrom": "{from} → {to}"
+    "movedFrom": "{from} → {to}",
+    "files": "Files",
+    "calendar": "Calendar",
+    "calendarOk": "On your Google Calendar ✓",
+    "calendarOpen": "Open in Calendar",
+    "calendarMissing": "Not on your calendar yet.",
+    "calendarTryAgain": "Try again",
+    "calendarRemoved": "This meeting is not on your calendar, because it is cancelled or deleted. Restoring it puts it back.",
+    "calendarPast": "This meeting is in the past, so it was not added to your calendar.",
+    "calendarFixed": "Added to your calendar.",
+    "calendarStillFailing": "We still couldn't reach your calendar. Your meeting is saved, and we will keep trying.",
+    "chipNoCalendar": "Not on your calendar yet"
   },
   "reschedule": {
     "title": "Reschedule",
@@ -406,5 +430,21 @@
     "c8": "Magenta",
     "c9": "Slate",
     "failed": "We couldn't add the category. Nothing was changed. Please try again."
+  },
+  "files": {
+    "title": "Files",
+    "none": "No files yet.",
+    "add": "Add files",
+    "open": "Open",
+    "remove": "Remove",
+    "dismiss": "Close",
+    "adding": "Adding… {percent}%",
+    "added": "Added {name}",
+    "removed": "Removed {name}",
+    "failed": "We couldn't add this file. Please try again.",
+    "removeFailed": "We couldn't remove that file. Please try again.",
+    "willSave": "Will be saved with the meeting",
+    "expired": "This file needs to be added again. Use Add files.",
+    "hint": "PDF, Word, Excel, PowerPoint, pictures, text, CSV or zip files."
   }
 }
