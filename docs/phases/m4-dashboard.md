@@ -17,18 +17,18 @@ One place to find every meeting: next meeting card, attention line, table and ca
 
 ## Tasks
 
-- [ ] `GET /meetings` query handling: scope, category, workspace, status, q, from, to, sort, dir, filters, limit, cursor (in memory)
-- [ ] Filter builder with operators by field type
-- [ ] Dashboard page, next-meeting card, attention line
-- [ ] Table view with TanStack Table, grouping, sorting, column chooser
-- [ ] Mobile card list
-- [ ] Calendar view with FullCalendar sharing the same filters
-- [ ] Debounced search (250 ms)
-- [ ] Playwright flows on both viewports; first-time-user check
+- [x] `GET /meetings` query handling: scope, category, workspace, status, q, from, to, sort, dir, filters, limit, cursor (in memory)
+- [x] Filter builder with operators by field type
+- [x] Dashboard page, next-meeting card, attention line
+- [x] Table view with TanStack Table, grouping, sorting, column chooser
+- [x] Mobile card list
+- [x] Calendar view with FullCalendar sharing the same filters
+- [x] Debounced search (250 ms)
+- [x] Playwright flows on both viewports; first-time-user check
 
 ## Definition of done
 
-- Upcoming is strictly ascending by date and time. Past is a separate tab.
-- Searching for any value in any category field finds the meeting.
-- Table and calendar show identical filtered sets.
+- [x] Upcoming is strictly ascending by date and time. Past is a separate tab.
+- [x] Searching for any value in any category field finds the meeting.
+- [x] Table and calendar show identical filtered sets.
 - Tag `m4-done`.

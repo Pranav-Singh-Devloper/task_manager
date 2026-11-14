@@ -92,3 +92,16 @@ Run against the owner's own Google account in live mode. Test data (a calendar e
 
 - **Popup reminders arriving on a phone** cannot be checked from a computer. The event was confirmed to hold reminders at 1440 and 60 minutes. The owner should create a real meeting a couple of days ahead and see that the phone notifies.
 - **Publishing the app** (see the Google Cloud setup entry above).
+
+## 2026-11-14 (M4: Dashboard)
+
+- **Filters, sort, tab and view live in the URL.** A filtered list can be bookmarked or sent to someone. Table or Calendar, the columns chosen, and Upcoming or Past are also remembered per device.
+- **Search and filters run on the server's cached copy.** Search looks at every text field plus title, category, workspace and file names. Paging is 50 rows with "Show more".
+- **One set of filter rules is shared** (`shared/filters.ts`) by the server and the filter builder, so the table, the calendar and the count always agree.
+- **The calendar shows the same filtered set as the table.** Its visible window is intersected with the Dates control, so the two never disagree about what is in range.
+- **The sticky header applies only from tablet width up.** On a phone at the largest text size it used 513 of 844 pixels, which left no room to read.
+- **Other-month days are readable.** FullCalendar fades them below the contrast we require, so they are drawn at full strength. Day cells lose FullCalendar's `aria-labelledby`, which did not match the visible text. The "+n more" link gets a button role, because it opens a list.
+- **Calendar and table library majors are pinned** (TanStack Table 8, FullCalendar 6). The newest majors installed by default changed the APIs we use.
+- **Left for M5:** the Files column (nothing to show until uploads exist) and the "calendar not synced" attention line.
+- **Not built yet:** a "Stop waiting for the next date" button on the meeting detail page. The server route exists (`POST /meetings/:id/dismiss-waiting`). It is added with the other detail-page actions.
+- **No drag to reschedule in the calendar**, as the spec says. Rescheduling stays the three-tap page.
