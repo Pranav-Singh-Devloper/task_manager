@@ -29,27 +29,105 @@ interface SeedCategory {
 }
 
 export const SEED_CATEGORIES: SeedCategory[] = [
-  { slug: 'ccie', name: 'CCIE', tabTitle: 'CCIE', workspace: 'nhai', titleTemplate: 'CCIE — {project_name} ({case_id})' },
-  { slug: 'sfc_pppac', name: 'SFC/PPPAC', tabTitle: 'SFC_PPPAC', workspace: 'nhai', titleTemplate: '' },
+  {
+    slug: 'ccie',
+    name: 'CCIE',
+    tabTitle: 'CCIE',
+    workspace: 'nhai',
+    titleTemplate: 'CCIE — {project_name} ({case_id})',
+  },
+  {
+    slug: 'sfc_pppac',
+    name: 'SFC/PPPAC',
+    tabTitle: 'SFC_PPPAC',
+    workspace: 'nhai',
+    titleTemplate: '',
+  },
   { slug: 'morth', name: 'MORTH', tabTitle: 'MORTH', workspace: 'nhai', titleTemplate: '' },
   { slug: 'pmg', name: 'PMG', tabTitle: 'PMG', workspace: 'nhai', titleTemplate: '' },
-  { slug: 'patsc_iac', name: 'PATSC/IAC', tabTitle: 'PATSC_IAC', workspace: 'nhai', titleTemplate: '' },
-  { slug: 'file_discussion', name: 'File Discussion', tabTitle: 'File Discussion', workspace: 'nhai', titleTemplate: '' },
-  { slug: 'at', name: 'AT (Award Target)', tabTitle: 'AT', workspace: 'nhai', titleTemplate: 'AT — {name_of_project}' },
-  { slug: 'court_case', name: 'Court Case', tabTitle: 'Court Case', workspace: 'nhai', titleTemplate: '' },
+  {
+    slug: 'patsc_iac',
+    name: 'PATSC/IAC',
+    tabTitle: 'PATSC_IAC',
+    workspace: 'nhai',
+    titleTemplate: '',
+  },
+  {
+    slug: 'file_discussion',
+    name: 'File Discussion',
+    tabTitle: 'File Discussion',
+    workspace: 'nhai',
+    titleTemplate: '',
+  },
+  {
+    slug: 'at',
+    name: 'AT (Award Target)',
+    tabTitle: 'AT',
+    workspace: 'nhai',
+    titleTemplate: 'AT — {name_of_project}',
+  },
+  {
+    slug: 'court_case',
+    name: 'Court Case',
+    tabTitle: 'Court Case',
+    workspace: 'nhai',
+    titleTemplate: '',
+  },
   { slug: 'others', name: 'Others', tabTitle: 'Others', workspace: 'nhai', titleTemplate: '' },
   // [Assumed] PhD categories; the owner can archive them.
-  { slug: 'supervisor_meeting', name: 'Supervisor Meeting', tabTitle: 'Supervisor Meeting', workspace: 'phd', titleTemplate: '' },
-  { slug: 'phd_milestone', name: 'PhD Milestone / Deadline', tabTitle: 'PhD Milestone', workspace: 'phd', titleTemplate: '' },
+  {
+    slug: 'supervisor_meeting',
+    name: 'Supervisor Meeting',
+    tabTitle: 'Supervisor Meeting',
+    workspace: 'phd',
+    titleTemplate: '',
+  },
+  {
+    slug: 'phd_milestone',
+    name: 'PhD Milestone / Deadline',
+    tabTitle: 'PhD Milestone',
+    workspace: 'phd',
+    titleTemplate: '',
+  },
 ];
 
 export const INDIAN_STATES_AND_UTS = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
-  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
-  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan',
-  'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
-  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi',
-  'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
 ];
 
 type FieldSpec = Partial<FieldDef> & Pick<FieldDef, 'key' | 'label' | 'type'>;
@@ -81,11 +159,44 @@ function makeField(slug: string, order: number, createdAt: string, spec: FieldSp
 /** Core fields every category has (§6.5). Orders leave room for category fields between them. */
 function coreFields(slug: string, hasTemplate: boolean, createdAt: string): FieldDef[] {
   const core: [number, FieldSpec][] = [
-    [10, { key: 'sr_no', label: 'Sr. No.', type: 'auto_number', locked: true, show_in_form: false }],
-    [20, { key: 'date', label: 'Date', type: 'date', required: true, locked: true, show_in_table: true }],
-    [30, { key: 'start_time', label: 'Time', type: 'time', required: true, locked: true, show_in_table: true }],
+    [
+      10,
+      { key: 'sr_no', label: 'Sr. No.', type: 'auto_number', locked: true, show_in_form: false },
+    ],
+    [
+      20,
+      {
+        key: 'date',
+        label: 'Date',
+        type: 'date',
+        required: true,
+        locked: true,
+        show_in_table: true,
+      },
+    ],
+    [
+      30,
+      {
+        key: 'start_time',
+        label: 'Time',
+        type: 'time',
+        required: true,
+        locked: true,
+        show_in_table: true,
+      },
+    ],
     [40, { key: 'end_time', label: 'End time', type: 'time', locked: true }],
-    [50, { key: 'topic', label: 'Topic', type: 'text', required: !hasTemplate, locked: true, show_in_table: true }],
+    [
+      50,
+      {
+        key: 'topic',
+        label: 'Topic',
+        type: 'text',
+        required: !hasTemplate,
+        locked: true,
+        show_in_table: true,
+      },
+    ],
     [
       800,
       {
@@ -99,7 +210,16 @@ function coreFields(slug: string, hasTemplate: boolean, createdAt: string): Fiel
         show_in_table: true,
       },
     ],
-    [810, { key: 'meeting_link', label: 'Meeting Link', type: 'url', locked: true, show_in_table: true }],
+    [
+      810,
+      {
+        key: 'meeting_link',
+        label: 'Meeting Link',
+        type: 'url',
+        locked: true,
+        show_in_table: true,
+      },
+    ],
     [820, { key: 'files', label: 'File', type: 'file', locked: true, show_in_table: true }],
     [830, { key: 'remarks', label: 'Remarks', type: 'text', locked: true }],
     [840, { key: 'details', label: 'Details', type: 'long_text', locked: true }],
@@ -122,11 +242,34 @@ function ccieFields(createdAt: string): FieldDef[] {
   const specs: FieldSpec[] = [
     { key: 'action_to_be_taken_by', label: 'Action to be taken by', type: 'text' },
     { key: 'status', label: 'Status', type: 'select', allow_new_options: true },
-    { key: 'case_id', label: 'Case Id', type: 'text', required: true, case_key: true, show_in_table: true },
-    { key: 'status_of_dispute', label: 'Status of Dispute', type: 'select', allow_new_options: true },
-    { key: 'status_of_detail_form', label: 'Status of Detail Form', type: 'select', allow_new_options: true },
+    {
+      key: 'case_id',
+      label: 'Case Id',
+      type: 'text',
+      required: true,
+      case_key: true,
+      show_in_table: true,
+    },
+    {
+      key: 'status_of_dispute',
+      label: 'Status of Dispute',
+      type: 'select',
+      allow_new_options: true,
+    },
+    {
+      key: 'status_of_detail_form',
+      label: 'Status of Detail Form',
+      type: 'select',
+      allow_new_options: true,
+    },
     { key: 'allocated_ccie', label: 'Allocated CCIE', type: 'select', allow_new_options: true },
-    { key: 'project_name', label: 'Project Name', type: 'text', required: true, show_in_table: true },
+    {
+      key: 'project_name',
+      label: 'Project Name',
+      type: 'text',
+      required: true,
+      show_in_table: true,
+    },
     { key: 'upc', label: 'UPC', type: 'text' },
     { key: 'piu', label: 'PIU', type: 'select', allow_new_options: true },
     { key: 'ro', label: 'RO', type: 'select', allow_new_options: true },
@@ -139,7 +282,11 @@ function ccieFields(createdAt: string): FieldDef[] {
       computed_expr: 'count_same(case_id)',
       show_in_table: true,
     },
-    { key: 'date_of_final_settlement_agreement', label: 'Date of Final Settlement Agreement', type: 'date' },
+    {
+      key: 'date_of_final_settlement_agreement',
+      label: 'Date of Final Settlement Agreement',
+      type: 'date',
+    },
     { key: 'date_of_initiation', label: 'Date Of Initiation', type: 'date' },
     {
       key: 'pendency_months',
@@ -155,7 +302,13 @@ function ccieFields(createdAt: string): FieldDef[] {
 
 function atFields(createdAt: string): FieldDef[] {
   const specs: FieldSpec[] = [
-    { key: 'name_of_project', label: 'Name of Project', type: 'text', required: true, show_in_table: true },
+    {
+      key: 'name_of_project',
+      label: 'Name of Project',
+      type: 'text',
+      required: true,
+      show_in_table: true,
+    },
     {
       key: 'mode',
       label: 'Mode',
@@ -199,12 +352,19 @@ export function buildSeedConfig(createdAt: string): SeedConfig {
 
   const fields: FieldDef[] = [];
   for (const c of SEED_CATEGORIES) {
-    const extra = c.slug === 'ccie' ? ccieFields(createdAt) : c.slug === 'at' ? atFields(createdAt) : [];
+    const extra =
+      c.slug === 'ccie' ? ccieFields(createdAt) : c.slug === 'at' ? atFields(createdAt) : [];
     fields.push(...coreFields(c.slug, c.titleTemplate !== '', createdAt), ...extra);
   }
 
   const tabTitles = Object.fromEntries(SEED_CATEGORIES.map((c) => [c.slug, c.tabTitle]));
-  return { workspaces: SEED_WORKSPACES, categories, fields, settings: { ...DEFAULT_SETTINGS }, tabTitles };
+  return {
+    workspaces: SEED_WORKSPACES,
+    categories,
+    fields,
+    settings: { ...DEFAULT_SETTINGS },
+    tabTitles,
+  };
 }
 
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {

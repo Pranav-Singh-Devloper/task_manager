@@ -71,7 +71,12 @@ export interface DriveClient {
   findByAppProperties(props: Record<string, string>): Promise<DriveFile[]>;
   getFile(fileId: string): Promise<DriveFile>;
   uploadFile(input: UploadInput): Promise<DriveFile>;
-  copyFile(fileId: string, name: string, parentId: string, appProperties: Record<string, string>): Promise<DriveFile>;
+  copyFile(
+    fileId: string,
+    name: string,
+    parentId: string,
+    appProperties: Record<string, string>,
+  ): Promise<DriveFile>;
   setAppProperties(fileId: string, props: Record<string, string>): Promise<void>;
   trashFile(fileId: string): Promise<void>;
 }
@@ -97,7 +102,11 @@ export interface CalendarClient {
   /** Throws GoogleApiError(409) when the id already exists, including after a delete. */
   insertEvent(calendarId: string, event: CalendarEventInput): Promise<CalendarEvent>;
   getEvent(calendarId: string, eventId: string): Promise<CalendarEvent>;
-  updateEvent(calendarId: string, eventId: string, event: CalendarEventInput): Promise<CalendarEvent>;
+  updateEvent(
+    calendarId: string,
+    eventId: string,
+    event: CalendarEventInput,
+  ): Promise<CalendarEvent>;
   deleteEvent(calendarId: string, eventId: string): Promise<void>;
 }
 
