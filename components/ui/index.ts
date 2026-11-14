@@ -1,5 +1,6 @@
 export { Button, buttonClasses } from './button';
 export { Card, CardTitle } from './card';
+export { CheckboxGroup } from './checkbox-group';
 export { Chip } from './chip';
 export { Combobox } from './combobox';
 export { ConfirmDialog } from './dialog';

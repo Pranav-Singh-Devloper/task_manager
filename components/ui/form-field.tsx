@@ -12,6 +12,8 @@ export interface FieldControlProps {
 
 interface FormFieldProps {
   label: string;
+  /** Gives the field a stable address: the wrapper is `field-<name>` and the control `input-<name>`. */
+  name?: string;
   required?: boolean;
   hint?: string;
   error?: string;
@@ -21,9 +23,10 @@ interface FormFieldProps {
 }
 
 /** Label, "(Required)" in words, hint and error message, wired together for screen readers. */
-export function FormField({ label, required, hint, error, group, children }: FormFieldProps) {
+export function FormField({ label, name, required, hint, error, group, children }: FormFieldProps) {
   const t = useTranslations('common');
-  const id = useId();
+  const auto = useId();
+  const id = name ? `input-${name}` : auto;
   const labelId = `${id}-label`;
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
@@ -37,7 +40,7 @@ export function FormField({ label, required, hint, error, group, children }: For
   );
 
   return (
-    <div className="flex flex-col gap-2">
+    <div id={name ? `field-${name}` : undefined} className="flex flex-col gap-2">
       {group ? (
         <span id={labelId} className="text-base font-semibold">
           {labelContent}

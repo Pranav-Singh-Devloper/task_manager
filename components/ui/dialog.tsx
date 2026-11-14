@@ -12,6 +12,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   onConfirm: () => void;
   destructive?: boolean;
+  /** The button that backs out. Defaults to Cancel; use a clearer word when the action itself is a cancel. */
+  cancelLabel?: string;
 }
 
 /** For short confirmations only. Forms are always full pages, never popups. */
@@ -23,6 +25,7 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   destructive,
+  cancelLabel,
 }: ConfirmDialogProps) {
   const t = useTranslations('common');
   return (
@@ -34,7 +37,7 @@ export function ConfirmDialog({
           <Dialog.Description className="mb-6 text-base">{description}</Dialog.Description>
           <div className="flex flex-wrap justify-end gap-3">
             <Dialog.Close asChild>
-              <Button>{t('cancel')}</Button>
+              <Button>{cancelLabel ?? t('cancel')}</Button>
             </Dialog.Close>
             <Button
               variant={destructive ? 'danger' : 'primary'}

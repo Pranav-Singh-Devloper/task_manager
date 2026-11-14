@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import { PreferencesProvider } from '@/components/preferences';
 import { ToastProvider } from '@/components/ui/toast';
+import { QueryProvider } from '@/lib/queries';
 import { PREF_COOKIE, parseContrast, parseTextSize } from '@/shared/preferences';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,13 +30,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <NextIntlClientProvider messages={messages}>
           <PreferencesProvider initialTextSize={textSize} initialContrast={contrast}>
             <ToastProvider>
-              <a
-                href="#main"
-                className="sr-only z-50 rounded-lg bg-accent px-4 py-3 font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
-              >
-                {t('skipToContent')}
-              </a>
-              {children}
+              <QueryProvider>
+                <a
+                  href="#main"
+                  className="sr-only z-50 rounded-lg bg-accent px-4 py-3 font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
+                >
+                  {t('skipToContent')}
+                </a>
+                {children}
+              </QueryProvider>
             </ToastProvider>
           </PreferencesProvider>
         </NextIntlClientProvider>
