@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens. Body text is at least 7:1 on the page background, UI borders at least 4.5:1. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #0b1220;
+  --text-muted: #334155;
+  --accent: #1e40af;
+  --accent-text: #ffffff;
+  --border: #64748b;
+  --border-soft: #cbd5e1;
+  --danger: #b91c1c;
+  --focus: #1e40af;
+  --bw: 1px;
+}
+
+/* Text size: A / A+ / A++ (100% / 125% / 150%). Everything is in rem, so layouts scale with it. */
+html {
+  font-size: 18px;
+}
+html[data-text-size='125'] {
+  font-size: 22.5px;
+}
+html[data-text-size='150'] {
+  font-size: 27px;
+}
+
+/* High contrast: pure black on white with 3 px borders. */
+html[data-contrast='high'] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --text: #000000;
+  --text-muted: #000000;
+  --accent: #000000;
+  --accent-text: #ffffff;
+  --border: #000000;
+  --border-soft: #000000;
+  --danger: #000000;
+  --focus: #000000;
+  --bw: 3px;
+}
+
+@layer base {
+  body {
+    @apply bg-page font-sans text-base leading-relaxed text-ink antialiased;
+  }
+  h1 {
+    @apply text-3xl font-bold leading-tight;
+  }
+  h2 {
+    @apply text-2xl font-semibold leading-tight;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Chips carry a text label; colour is only decoration. */
+.chip {
+  border-color: var(--chip, var(--border));
+  color: var(--chip, var(--text));
+}
+html[data-contrast='high'] .chip {
+  border-color: #000;
+  color: #000;
+  background: #fff;
+}
+
+/* No animation beyond short fades. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 150ms ease-out;
+}
