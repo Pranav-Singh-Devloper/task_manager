@@ -33,7 +33,7 @@ export interface Col {
 
 /**
  * The table's columns (§7.2): Time, Category, Meeting, Status, Join and Reschedule, plus, when one category is chosen,
- * that category's own columns. Files joins them when file upload exists.
+ * that category's own columns. Files shows how many files a meeting has.
  */
 export function buildColumns(
   meta: Meta,
@@ -44,6 +44,7 @@ export function buildColumns(
     meeting: string;
     status: string;
     join: string;
+    files: string;
     actions: string;
   },
 ): Col[] {
@@ -72,6 +73,7 @@ export function buildColumns(
       defaultVisible: true,
     },
     { id: 'join', label: words.join, sortKind: 'text', defaultVisible: true },
+    { id: 'files', label: words.files, sortKind: 'text', defaultVisible: true },
     { id: 'actions', label: words.actions, sortKind: 'text', defaultVisible: true, fixed: true },
   ];
   if (!category) return base;

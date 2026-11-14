@@ -15,6 +15,10 @@ export const isOpen = (m: Meeting) =>
     m.values.meeting_status === 'Rescheduled' ||
     !m.values.meeting_status);
 
+/** A meeting that should be on the calendar but is not yet: shown as a small note. */
+export const offCalendar = (m: Meeting) =>
+  isOpen(m) && (m.calendar_sync === 'error' || m.calendar_sync === 'pending');
+
 /** The meeting's title as a link, with its small "Rescheduled ×2" and "Incomplete" notes. */
 export function TitleCell({ meeting }: { meeting: Meeting }) {
   const t = useTranslations('dashboard');
@@ -27,6 +31,7 @@ export function TitleCell({ meeting }: { meeting: Meeting }) {
         {meeting.title}
       </Link>
       <span className="flex flex-wrap gap-2">
+        {offCalendar(meeting) && <Chip>{t('notOnCalendar')}</Chip>}
         {meeting.reschedule_count > 0 && (
           <Chip>{t('rescheduledTimes', { count: meeting.reschedule_count })}</Chip>
         )}
@@ -54,6 +59,35 @@ export function JoinButton({ meeting }: { meeting: Meeting }) {
       {t('join')}
       <span className="sr-only">{` — ${meeting.title}`}</span>
     </a>
+  );
+}
+
+/** How many files, with one button: Open for a single file, or the meeting page when there are several. */
+export function FilesCell({ meeting }: { meeting: Meeting }) {
+  const t = useTranslations('dashboard');
+  const files = meeting.files;
+  if (files.length === 0) return <span className="text-muted">{'—'}</span>;
+  const one = files[0]!;
+  return (
+    <span className="flex flex-col items-start gap-1">
+      <span className="font-semibold">{t('fileCount', { count: files.length })}</span>
+      {files.length === 1 ? (
+        <a
+          href={one.view_link}
+          target="_blank"
+          rel="noreferrer"
+          className={buttonClasses('outline')}
+        >
+          {t('openFile')}
+          <span className="sr-only">{` — ${one.name}`}</span>
+        </a>
+      ) : (
+        <Link href={`/meetings/${meeting.id}`} className={buttonClasses('outline')}>
+          {t('seeFiles')}
+          <span className="sr-only">{` — ${meeting.title}`}</span>
+        </Link>
+      )}
+    </span>
   );
 }
 

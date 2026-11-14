@@ -8,7 +8,14 @@ import { dateText, timeText, valueText } from '@/components/meeting/format';
 import type { Meta } from '@/lib/queries';
 import type { Meeting } from '@/shared/meeting';
 import { orderKey, type Col } from './columns';
-import { CategoryChip, JoinButton, RescheduleButton, StatusCell, TitleCell } from './row-bits';
+import {
+  CategoryChip,
+  FilesCell,
+  JoinButton,
+  RescheduleButton,
+  StatusCell,
+  TitleCell,
+} from './row-bits';
 
 interface Props {
   meetings: Meeting[];
@@ -57,6 +64,8 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
               return <StatusCell meeting={m} />;
             case 'join':
               return <JoinButton meeting={m} />;
+            case 'files':
+              return <FilesCell meeting={m} />;
             case 'actions':
               return <RescheduleButton meeting={m} here={here} />;
             default: {

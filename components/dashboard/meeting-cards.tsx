@@ -6,7 +6,14 @@ import { buttonClasses } from '@/components/ui';
 import { dateText, timeText } from '@/components/meeting/format';
 import type { Meta } from '@/lib/queries';
 import type { Meeting } from '@/shared/meeting';
-import { CategoryChip, JoinButton, RescheduleButton, StatusCell, TitleCell } from './row-bits';
+import {
+  CategoryChip,
+  FilesCell,
+  JoinButton,
+  RescheduleButton,
+  StatusCell,
+  TitleCell,
+} from './row-bits';
 
 /** The phone version of the table: one card per meeting, with a large date and time and every action as a labelled button. */
 export function MeetingCards({
@@ -64,6 +71,7 @@ export function MeetingCards({
                       <span className="sr-only">{` — ${m.title}`}</span>
                     </Link>
                     <JoinButton meeting={m} />
+                    {m.files.length > 0 && <FilesCell meeting={m} />}
                     <RescheduleButton meeting={m} here={here} />
                   </div>
                 </li>

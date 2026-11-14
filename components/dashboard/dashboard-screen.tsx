@@ -1,11 +1,11 @@
 'use client';
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Button, buttonClasses, Card, CardTitle, Chip, Segmented } from '@/components/ui';
+import { Button, buttonClasses, Card, CardTitle, Chip, Segmented, useToast } from '@/components/ui';
 import { dateText, timeText } from '@/components/meeting/format';
 import { api } from '@/lib/api';
 import { isFiltered, toApiQuery, type Tab, type View } from '@/lib/dashboard-params';
@@ -40,6 +40,7 @@ interface Summary {
   next: Meeting | null;
   incomplete: number;
   waiting: number;
+  unsynced: number;
 }
 
 const PAGE = 50;
@@ -74,6 +75,23 @@ function Dashboard({ meta }: { meta: Meta }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const { settings } = meta;
+  const client = useQueryClient();
+  const toast = useToast();
+  const [fixing, setFixing] = useState(false);
+
+  /** "Fix now": try the calendar again for every meeting that is not on it. */
+  async function fixCalendar() {
+    setFixing(true);
+    try {
+      const r = await api<{ failed: number }>('/calendar/retry-all', { method: 'POST' });
+      await client.invalidateQueries();
+      toast.show({ message: r.failed === 0 ? t('fixedCalendar') : t('stillNotOnCalendar') });
+    } catch {
+      toast.show({ message: t('stillNotOnCalendar') });
+    } finally {
+      setFixing(false);
+    }
+  }
 
   const summary = useQuery({
     queryKey: ['summary'],
@@ -108,6 +126,7 @@ function Dashboard({ meta }: { meta: Meta }) {
         meeting: t('colMeeting'),
         status: t('colStatus'),
         join: t('colJoin'),
+        files: t('colFiles'),
         actions: t('colActions'),
       }),
     [meta, params.category, t],
@@ -190,26 +209,38 @@ function Dashboard({ meta }: { meta: Meta }) {
       </Card>
 
       {/* One plain sentence for each thing that needs a look, each with a button (§7.2). */}
-      {!attention && summary.data && (summary.data.incomplete > 0 || summary.data.waiting > 0) && (
-        <div role="status" className="flex flex-col gap-2">
-          {summary.data.incomplete > 0 && (
-            <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
-              <span className="font-semibold">
-                {t('attentionIncomplete', { count: summary.data.incomplete })}
-              </span>
-              <Button onClick={() => update({ attention: 'incomplete' })}>{t('show')}</Button>
-            </p>
-          )}
-          {summary.data.waiting > 0 && (
-            <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
-              <span className="font-semibold">
-                {t('attentionWaiting', { count: summary.data.waiting })}
-              </span>
-              <Button onClick={() => update({ attention: 'awaiting' })}>{t('show')}</Button>
-            </p>
-          )}
-        </div>
-      )}
+      {!attention &&
+        summary.data &&
+        (summary.data.incomplete > 0 || summary.data.waiting > 0 || summary.data.unsynced > 0) && (
+          <div role="status" className="flex flex-col gap-2">
+            {summary.data.incomplete > 0 && (
+              <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
+                <span className="font-semibold">
+                  {t('attentionIncomplete', { count: summary.data.incomplete })}
+                </span>
+                <Button onClick={() => update({ attention: 'incomplete' })}>{t('show')}</Button>
+              </p>
+            )}
+            {summary.data.unsynced > 0 && (
+              <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
+                <span className="font-semibold">
+                  {t('attentionUnsynced', { count: summary.data.unsynced })}
+                </span>
+                <Button disabled={fixing} onClick={() => void fixCalendar()}>
+                  {t('fixNow')}
+                </Button>
+              </p>
+            )}
+            {summary.data.waiting > 0 && (
+              <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
+                <span className="font-semibold">
+                  {t('attentionWaiting', { count: summary.data.waiting })}
+                </span>
+                <Button onClick={() => update({ attention: 'awaiting' })}>{t('show')}</Button>
+              </p>
+            )}
+          </div>
+        )}
       {attention && (
         <p className="flex flex-wrap items-center gap-3">
           <Chip>{attention === 'incomplete' ? t('showingIncomplete') : t('showingAwaiting')}</Chip>
