@@ -4,7 +4,9 @@ import { newId } from '../../shared/ids';
 import type { FileRecord, SystemFields } from '../../shared/meeting';
 import { SYSTEM_COLUMNS, TAB } from '../../shared/schema';
 import type { Cell, FieldValue } from '../../shared/types';
+import { DatabaseMissingError } from '../lib/errors';
 import { KeyedMutex } from '../lib/mutex';
+import { isGoogleApiError } from './google/errors';
 import { ActivityLog, type AuditEntry } from './audit';
 import { buildConfig, type CategoryConfig, type Config } from './config';
 import { orderOptionsByUse } from './lookups';
@@ -183,7 +185,13 @@ export class SheetStore {
 
   private async load(): Promise<Snapshot> {
     const previous = this.snap;
-    const tabs = await this.google.sheets.getTabs(this.spreadsheetId);
+    let tabs: TabInfo[];
+    try {
+      tabs = await this.google.sheets.getTabs(this.spreadsheetId);
+    } catch (err) {
+      if (isGoogleApiError(err, 404)) throw new DatabaseMissingError();
+      throw err;
+    }
     const cacheable = tabs.filter((t) => !NOT_CACHED.includes(t.title));
     const data = await this.google.sheets.batchGet(
       this.spreadsheetId,

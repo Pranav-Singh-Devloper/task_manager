@@ -54,6 +54,13 @@ export class UndoUnavailableError extends AppError {
   }
 }
 
+/** The spreadsheet the app was using is gone (deleted, or no longer shared). The person is offered a way back (§11). */
+export class DatabaseMissingError extends AppError {
+  constructor() {
+    super(503, 'database_missing', "Your database couldn't be found.");
+  }
+}
+
 export class NotSetUpError extends AppError {
   constructor() {
     super(503, 'not_set_up', 'The app is not set up yet. The owner needs to sign in once first.');

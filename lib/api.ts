@@ -1,4 +1,5 @@
 import type { ValidationIssue } from '@/shared/types';
+import { reportDatabaseMissing } from './db-missing';
 
 /** An error from the server, already in plain language. */
 export class ApiError extends Error {
@@ -60,6 +61,7 @@ export async function api<T>(path: string, { method = 'GET', body }: Options = {
         };
       } | null
     )?.error;
+    if (e?.code === 'database_missing') reportDatabaseMissing();
     throw new ApiError(
       res.status,
       e?.code ?? 'error',

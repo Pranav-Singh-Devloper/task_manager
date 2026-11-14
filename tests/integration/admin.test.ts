@@ -361,3 +361,39 @@ describe('system health and the change log', () => {
     expect(none.body.total).toBe(0);
   });
 });
+
+describe('when the database cannot be found', () => {
+  it('says so plainly, and a new database can be set up', async () => {
+    const { call, mock } = await boot();
+    const state = (await mock.services.state.read())!;
+    // Deleted in Drive too, as it would be for real.
+    mock.world.spreadsheets.delete(state.activeSpreadsheetId!);
+    mock.world.files.delete(state.activeSpreadsheetId!);
+    const gone = await call('POST', '/refresh');
+    expect(gone.status).toBe(503);
+    expect(gone.body.error).toMatchObject({ code: 'database_missing' });
+
+    const noBackup = await call('POST', '/recover', { action: 'backup' });
+    expect(noBackup.status).toBe(404);
+
+    const fixed = await call('POST', '/recover', { action: 'new' });
+    expect(fixed.status).toBe(200);
+    expect((await call('GET', '/meta')).status).toBe(200);
+    expect((await mock.services.state.read())!.activeSpreadsheetId).not.toBe(
+      state.activeSpreadsheetId,
+    );
+  });
+
+  it('can switch to the newest backup instead', async () => {
+    const { call, mock } = await boot();
+    const m = await make(call);
+    const backup = (await call('POST', '/admin/backup')).body.backup;
+    const state = (await mock.services.state.read())!;
+    mock.world.spreadsheets.delete(state.activeSpreadsheetId!);
+    mock.world.files.delete(state.activeSpreadsheetId!);
+    expect((await call('POST', '/refresh')).status).toBe(503);
+    expect((await call('POST', '/recover', { action: 'backup' })).status).toBe(200);
+    expect((await mock.services.state.read())!.activeSpreadsheetId).toBe(backup.id);
+    expect((await call('GET', `/meetings/${m.id}`)).status).toBe(200);
+  });
+});
