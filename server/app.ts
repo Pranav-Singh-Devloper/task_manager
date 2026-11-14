@@ -13,7 +13,6 @@ import { DataLayer } from './services/data';
 import { isGoogleApiError } from './services/google/errors';
 import type { GoogleAuth } from './services/google/auth';
 import type { GoogleServices } from './services/google/types';
-import type { FailureInjector } from './services/google/mock/failure';
 
 export interface AppDeps {
   env: Env;
@@ -21,12 +20,10 @@ export interface AppDeps {
   logger: Logger;
   /** Present in live mode only. */
   auth?: GoogleAuth;
-  /** Mock mode only: lets tests and demos make Google fail on purpose. */
-  failures?: FailureInjector;
 }
 
 /** The API half of the server. Next.js pages are attached in index.ts. */
-export function createApp({ env, google, logger, auth, failures }: AppDeps): Express {
+export function createApp({ env, google, logger, auth }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -49,15 +46,6 @@ export function createApp({ env, google, logger, auth, failures }: AppDeps): Exp
   api.use(meetingsRouter(data));
   api.use(filesRouter(data));
   api.use(calendarRouter(data));
-  if (failures && !env.isProduction) {
-    // Test and demo helper: POST {"spec": "calendar"} to break Calendar, {"spec": ""} to fix it.
-    api.post('/dev/mock-fail', (req, res) => {
-      const spec = typeof req.body?.spec === 'string' ? req.body.spec : '';
-      failures.clear();
-      failures.load(spec);
-      res.json({ active: failures.active() });
-    });
-  }
   api.use((_req, res) => {
     res.status(404).json({ error: { code: 'not_found', message: 'We could not find that.' } });
   });

@@ -6,15 +6,12 @@ import { LiveDrive } from './live/drive';
 import { LiveMail } from './live/mail';
 import { LiveSheets } from './live/sheets';
 import { createMockGoogle } from './mock';
-import type { FailureInjector } from './mock/failure';
 import type { GoogleServices } from './types';
 
 export interface GoogleSetup {
   google: GoogleServices;
   /** Only in live mode. */
   auth?: GoogleAuth;
-  /** Only in mock mode. */
-  failures?: FailureInjector;
 }
 
 /** Picks the Google implementation for the configured mode. */
@@ -25,7 +22,7 @@ export async function createGoogleServices(env: Env): Promise<GoogleSetup> {
       seed: 'demo',
       timezone: env.defaultTimezone,
     });
-    return { google: mock.services, failures: mock.failures };
+    return { google: mock.services };
   }
 
   const state = new FileStateStore(env.dataDir);

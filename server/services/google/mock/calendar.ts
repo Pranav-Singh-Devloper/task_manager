@@ -7,6 +7,12 @@ const BASE32HEX = /^[0-9a-v]{5,1024}$/;
 const MAX_REMINDERS = 5;
 const MAX_REMINDER_MINUTES = 40320;
 
+/**
+ * A meeting whose title contains this text finds Calendar down the first time it is sent, then fine on the next try.
+ * It lets a test (or a demo) show the "Not on your calendar yet" path without breaking Calendar for everyone else.
+ */
+export const CALENDAR_DOWN_ONCE = 'calendar-down-once';
+
 /** Mirrors the Calendar rules the app depends on: id format, reminder limits, 409 on reused ids. */
 export class MockCalendar implements CalendarClient {
   constructor(
@@ -21,6 +27,15 @@ export class MockCalendar implements CalendarClient {
       this.world.calendars.set(calendarId, m);
     }
     return m;
+  }
+
+  private failedOnce = new Set<string>();
+
+  private downOnce(event: CalendarEventInput): void {
+    if (event.summary.includes(CALENDAR_DOWN_ONCE) && !this.failedOnce.has(event.id)) {
+      this.failedOnce.add(event.id);
+      throw new GoogleApiError(503, 'Calendar is unavailable', 'backendError');
+    }
   }
 
   private validate(event: CalendarEventInput): void {
@@ -38,6 +53,7 @@ export class MockCalendar implements CalendarClient {
 
   async insertEvent(calendarId: string, event: CalendarEventInput): Promise<CalendarEvent> {
     this.failures.check('calendar');
+    this.downOnce(event);
     this.validate(event);
     const events = this.events(calendarId);
     if (events.has(event.id)) {
@@ -61,6 +77,7 @@ export class MockCalendar implements CalendarClient {
     event: CalendarEventInput,
   ): Promise<CalendarEvent> {
     this.failures.check('calendar');
+    this.downOnce(event);
     this.validate(event);
     const events = this.events(calendarId);
     if (!events.has(eventId)) throw new GoogleApiError(404, 'Not Found', 'notFound');

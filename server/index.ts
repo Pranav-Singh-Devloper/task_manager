@@ -12,8 +12,8 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const logger = createLogger(env.logLevel, !env.isProduction && process.stdout.isTTY);
 
-  const { google, auth, failures } = await createGoogleServices(env);
-  const api = createApp({ env, google, logger, auth, failures });
+  const { google, auth } = await createGoogleServices(env);
+  const api = createApp({ env, google, logger, auth });
 
   const jobs = startJobs(api.locals.data as DataLayer, google, logger);
   const nextApp = next({ dev: !env.isProduction, dir: process.cwd() });
