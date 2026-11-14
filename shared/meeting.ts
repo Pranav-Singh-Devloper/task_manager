@@ -33,6 +33,8 @@ export interface Meeting {
   series_id: string;
   /** The last sitting is done and the next date is not decided yet. */
   awaiting_next: boolean;
+  /** How many times it has been rescheduled. */
+  reschedule_count: number;
   /** Cells that could not be read, in plain words ("needs attention"). */
   needs_attention: string[];
   /** Required fields that are empty: the "Incomplete" chip. */

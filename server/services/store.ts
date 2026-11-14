@@ -12,7 +12,8 @@ import type { GoogleServices, TabInfo } from './google/types';
 import { parseRow, serializeRow, type RowRecord } from './rows';
 
 /** Log tabs only grow and are read on demand, so they are not cached. */
-const NOT_CACHED: string[] = [TAB.audit, TAB.reschedules, TAB.system];
+/** _audit only grows and is read on demand. _reschedules and _files are small enough to keep, for counts and search. */
+const NOT_CACHED: string[] = [TAB.audit, TAB.system];
 
 export interface Entry {
   id: string;
@@ -45,12 +46,42 @@ export interface Snapshot {
   categories: Map<string, CategoryData>;
   /** Raw rows of every cached tab, by gid. Row 1 is the header. */
   raw: Map<number, Cell[][]>;
+  /** How many times each meeting has been rescheduled, for the "Rescheduled ×N" chip. */
+  rescheduleCounts: Map<string, number>;
+  /** Names of the files attached to each meeting, so search can find them. */
+  fileNames: Map<string, string[]>;
 }
 
 export interface StoreOptions {
   logger: Logger;
   clock?: () => Date;
   ttlMs?: number;
+}
+
+/** Counts rows by the value in one column of a log tab. */
+function countBy(rows: Cell[][], column: string): Map<string, number> {
+  const col = headerOf(rows).indexOf(column);
+  const out = new Map<string, number>();
+  if (col < 0) return out;
+  for (const r of rows.slice(1)) {
+    const key = String(r[col] ?? '').trim();
+    if (key) out.set(key, (out.get(key) ?? 0) + 1);
+  }
+  return out;
+}
+
+function fileNamesOf(rows: Cell[][]): Map<string, string[]> {
+  const h = headerOf(rows);
+  const [mid, name, status] = [h.indexOf('meeting_id'), h.indexOf('name'), h.indexOf('status')];
+  const out = new Map<string, string[]>();
+  if (mid < 0 || name < 0) return out;
+  for (const r of rows.slice(1)) {
+    const id = String(r[mid] ?? '').trim();
+    const n = String(r[name] ?? '').trim();
+    if (!id || !n || (status >= 0 && String(r[status] ?? '') === 'removed')) continue;
+    out.set(id, [...(out.get(id) ?? []), n]);
+  }
+  return out;
 }
 
 const isBlankRow = (row: Cell[]) =>
@@ -157,6 +188,8 @@ export class SheetStore {
       config,
       categories,
       raw,
+      rescheduleCounts: countBy(rowsOf(TAB.reschedules), 'meeting_id'),
+      fileNames: fileNamesOf(rowsOf(TAB.files)),
     };
     this.snap = snap;
     this.groupCounts.clear();
@@ -373,10 +406,21 @@ export class SheetStore {
     snap.version = this.version;
     this.groupCounts.clear();
     await this.log.reschedule(...logs);
+    for (const l of logs) this.noteReschedule(l.meetingId);
     await this.log.audit(...audits);
   }
 
   // ---------- reading ----------
+
+  /** A reschedule was just logged, so the count on screen goes up without waiting for the next reload. */
+  noteReschedule(meetingId: string): void {
+    const counts = this.snap?.rescheduleCounts;
+    if (counts) counts.set(meetingId, (counts.get(meetingId) ?? 0) + 1);
+  }
+
+  rescheduleCount(meetingId: string): number {
+    return this.snap?.rescheduleCounts.get(meetingId) ?? 0;
+  }
 
   /** Counts for count_same(): non-deleted rows in a category that share a value. Computed once per cache version. */
   countSame(slug: string, key: string, value: FieldValue | undefined): number {

@@ -50,12 +50,12 @@ describe('loading and caching', () => {
     expect(f.calls()).toBe(0);
   });
 
-  it('does not cache the log tabs', async () => {
+  it('does not cache the change log or the system tab', async () => {
     const f = await fixture();
     const snap = await f.store.snapshot();
     const titles = new Set(snap.tabs.filter((t) => snap.raw.has(t.gid)).map((t) => t.title));
     expect(titles.has('_audit')).toBe(false);
-    expect(titles.has('_reschedules')).toBe(false);
+    expect(titles.has('_reschedules')).toBe(true); // kept for the Rescheduled ×N counts
     expect(titles.has('_system')).toBe(false);
     expect(titles.has('CCIE')).toBe(true);
   });
