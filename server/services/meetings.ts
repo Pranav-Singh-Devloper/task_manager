@@ -13,6 +13,7 @@ import {
 } from '../lib/errors';
 import type { AuditAction, ChangeSource, RescheduleEntry } from './audit';
 import type { CategoryConfig } from './config';
+import { isOpenStatus, queryMeetings, type ListOptions, type Page } from './listing';
 import { titleOf, toMeeting } from './meetingView';
 import { learnOptions } from './lookups';
 import { parseRow, serializeRow, type RowRecord } from './rows';
@@ -87,14 +88,6 @@ const CORE_KEYS = new Set([
 ]);
 const COPY_CORE = ['topic', 'meeting_link', 'workspace', 'reminder_minutes'];
 const MAX_NOTES = 20000;
-
-export interface ListOptions {
-  scope?: 'upcoming' | 'past' | 'all';
-  category?: string;
-  workspace?: string;
-  status?: string;
-  deleted?: 'exclude' | 'only' | 'include';
-}
 
 /** Scheduled becomes Rescheduled by itself. Everything else is a deliberate action (§9 rule 3). */
 const TRANSITIONS: Record<MeetingStatus, MeetingStatus[]> = {
@@ -175,41 +168,48 @@ export class MeetingService {
     return toMeeting(this.store, snap, found.slug, entry);
   }
 
-  /** A simple list for now; search, filters and paging arrive with the dashboard. */
-  async list(o: ListOptions = {}): Promise<Meeting[]> {
+  /** Finds meetings: search, filters, date range, sort and paging. See listing.ts. */
+  async query(options: ListOptions = {}): Promise<Page> {
     const snap = await this.store.snapshot();
-    const tz = snap.config.settings.timezone;
-    const minutes = Number(snap.config.settings.default_duration_min);
-    const now = this.store.now();
-    const out: Meeting[] = [];
+    return queryMeetings(this.store, snap, options);
+  }
 
-    for (const [slug, data] of snap.categories) {
-      if (o.category && o.category !== slug) continue;
-      for (const entry of data.entries.values()) {
-        const v = entry.record.values;
-        const deleted = Boolean(entry.record.system.deleted_at);
-        if (o.deleted === 'only' ? !deleted : o.deleted === 'include' ? false : deleted) continue;
-        if (o.workspace && v.workspace !== o.workspace) continue;
-        if (o.status && v.meeting_status !== o.status) continue;
-        if (o.scope && o.scope !== 'all') {
-          if (typeof v.date !== 'string' || typeof v.start_time !== 'string') continue;
-          const upcoming = isUpcoming(
-            v.date,
-            v.start_time,
-            v.end_time as string | null,
-            minutes,
-            tz,
-            now,
-          );
-          if ((o.scope === 'upcoming') !== upcoming) continue;
-        }
-        out.push(toMeeting(this.store, snap, slug, entry));
-      }
-    }
-    const key = (m: Meeting) => `${m.values.date ?? ''} ${m.values.start_time ?? ''}`;
-    out.sort((a, b) => key(a).localeCompare(key(b)));
-    if (o.scope === 'past') out.reverse();
-    return out;
+  async list(options: ListOptions = {}): Promise<Meeting[]> {
+    return (await this.query(options)).meetings;
+  }
+
+  /** What the dashboard's top needs: the next meeting, and how many need attention. */
+  async summary(): Promise<{ next: Meeting | null; incomplete: number; waiting: number }> {
+    const snap = await this.store.snapshot();
+    const upcoming = queryMeetings(this.store, snap, {
+      scope: 'upcoming',
+      sort: 'date',
+      dir: 'asc',
+    }).meetings;
+    const incomplete = queryMeetings(this.store, snap, { incomplete: true }).total;
+    const waiting = queryMeetings(this.store, snap, { awaiting: true }).total;
+    return {
+      next: upcoming.find((m) => isOpenStatus(m.values.meeting_status)) ?? null,
+      incomplete,
+      waiting,
+    };
+  }
+
+  /** Stops waiting for a next date without scheduling one (§7.6). */
+  async dismissWaiting(id: string, rev: number, actor: Actor): Promise<MutationResult> {
+    return this.mutate(id, rev, actor, (c) => {
+      if (!c.record.system.awaiting_next) return null;
+      return {
+        values: c.record.values,
+        system: { awaiting_next: false },
+        action: 'update',
+        changes: { awaiting_next: [true, false] },
+        undo: {
+          revert: { values: {}, awaiting_next: true },
+          label: 'No longer waiting for a next date',
+        },
+      };
+    });
   }
 
   async history(id: string) {
@@ -292,6 +292,7 @@ export class MeetingService {
           categorySlug: slug,
           source: source === 'job' ? 'app' : source,
         });
+        this.store.noteReschedule(id);
       }
       const undoToken = plan.undo
         ? this.undo.issue({
