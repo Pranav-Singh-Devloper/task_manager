@@ -1,4 +1,4 @@
-import { addMinutesToTime, endTimeFor, isUpcoming } from '../../shared/dates';
+import { addMinutesToTime, endTimeFor, isUpcoming, parseTimeLoose } from '../../shared/dates';
 import { isUlid } from '../../shared/ids';
 import type { Meeting, SystemFields } from '../../shared/meeting';
 import type { FieldValue, MeetingStatus } from '../../shared/types';
@@ -506,6 +506,8 @@ export class MeetingService {
     actor: Actor,
   ): Promise<MutationResult> {
     const current = await this.get(id);
+    // People may type "2:30 pm"; work in 24-hour text from here on.
+    input = { ...input, start_time: parseTimeLoose(input.start_time) ?? input.start_time };
     const settings = (await this.store.snapshot()).config.settings;
     let end = input.end_time ?? null;
     if (!end) {
