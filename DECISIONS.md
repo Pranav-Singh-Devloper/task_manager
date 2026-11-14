@@ -39,6 +39,22 @@ Format: date · decision · why · how to undo it.
 - **A user who unticks Calendar or Drive on Google's permission screen** gets a plain message asking them to sign in again with both ticked, and nothing is saved.
 - **The live Google adapters are covered by tests of their pure parts** (retries, error mapping, A1 quoting, format requests, Drive queries) and by the mock adapters sharing the same interfaces. They have not yet been run against real Google. See the open items below.
 
+## 2026-11-14 (M2)
+
+- **One guarded path changes a meeting row.** It takes the tab's lock, re-reads the live row, checks the id cell is where the cache says (re-indexing the tab if the owner sorted the Sheet), checks the rev, validates, writes, updates the cache, then logs. Reading the live row also means a stale cache can never overwrite a newer Sheet edit.
+- **Undo is an inverse change, with in-memory tokens.** Tokens last 10 minutes and work once, and they are lost if the server restarts. Why: the change itself is already saved, so nothing is lost; only the Undo button goes away. Undo of a create moves the meeting to Trash, as the spec says.
+- **Logging is best effort.** The change is already saved when it is logged, so a Sheets hiccup in `_audit` is counted (for System health) and not turned into a failed save.
+- **A Sheet edit to a date or time is noticed only after the first load in a running server.** The app cannot know what a date was before it first looked. A date edited while the server was off is simply read as the truth. Undo: none needed.
+- **Hand-typed rows are adopted; copied rows get a fresh id.** A row with no id and a readable date becomes a meeting. A row that repeats another row's id (copy and paste) gets a new id. A row with no readable date is left alone and listed as "needs attention".
+- **Calculated columns are not stored.** The Sheet shows them blank, with a note on the header. They are worked out on read, and can only use stored columns, never each other, so a loop is impossible.
+- **Blank and missing mean the same thing in validation.** Every active field is passed to Zod explicitly (null when absent), because Zod 4 treats a missing key as invalid when the field has a transform.
+- **`calendar_sync` is set to `pending` when a change touches the Calendar event** (time, topic, link, reminders, details, status, or a title field), and left for M5 to act on. M2 never talks to Calendar.
+- **`GET /meetings` is basic** (scope, category, workspace, status). Search, filters, sorting and paging arrive with the dashboard in M4.
+- **A Google outage is a 503 saying "Your changes are still here"**, and a dead sign-in is a 401 `needs_sign_in`. Both are mapped in one place in `app.ts`.
+- **`/api/meta` reports `problems` (skipped config rows) and `attention` (unreadable cells)** so System health in M6 can show them without new plumbing.
+- **Learning dropdowns (§9 rule 18) move to M3**, where the form's "Add xyz" row exists. Clash detection stays in Phase 2.
+- **Settings changes reload the cache** instead of patching it, because they are rare and a reload is always correct.
+
 ## 2026-11-14 ([Verify] results from a real Google account)
 
 Run against the owner's own Google account in live mode. Test data (a calendar event, a file and two Sheet rows) was removed afterwards.

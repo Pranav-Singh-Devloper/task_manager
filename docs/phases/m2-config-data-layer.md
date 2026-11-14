@@ -20,20 +20,23 @@ The service layer that makes the schema flexible. Adding a field through config 
 
 ## Tasks
 
-- [ ] `shared/` types, field-type definitions, formula tokenizer, parser, evaluator
-- [ ] `server/lib/` cache, mutex, backoff, dates
-- [ ] `services/config.ts` and `services/schema.ts`
-- [ ] Meetings service: list, get, create, update, delete, restore, status
-- [ ] `services/audit.ts` and `services/undo.ts`
-- [ ] `services/reschedule.ts` logging on any date or time change
-- [ ] Row adoption and tolerant reader
-- [ ] Routes: `meetings`, `undo`, `settings`, `meta`
-- [ ] Unit tests (run with `TZ=America/Los_Angeles`) and integration tests against mocks
+- [x] `shared/` types, field-type definitions, formula tokenizer, parser, evaluator
+- [x] `server/lib/` cache, mutex, backoff, dates
+- [x] `services/config.ts` and `services/schema.ts`
+- [x] Meetings service: list, get, create, update, delete, restore, status
+- [x] `services/audit.ts` and `services/undo.ts`
+- [x] `services/reschedule.ts` logging on any date or time change
+- [x] Row adoption and tolerant reader
+- [x] Routes: `meetings`, `undo`, `settings`, `meta`
+- [x] Unit tests (run with `TZ=America/Los_Angeles`) and integration tests against mocks
 
 ## Definition of done
 
-- Adding a field in config (via a test) changes validation, the Sheet header and API output without code changes.
-- Concurrent edits return 409.
-- Posting the same create twice yields one row.
-- A broken `_fields` row is skipped and reported.
+- [x] Adding a field in config (via a test) changes validation, the Sheet header and API output without code changes.
+- [x] Concurrent edits return 409.
+- [x] Posting the same create twice yields one row.
+- [x] A broken `_fields` row is skipped and reported.
+- [x] Checked read-only against the real spreadsheet: a full load is 2 Sheets calls, with no config problems.
 - Tag `m2-done`.
+
+Moved: learning dropdowns go to M3 with the form (see `DECISIONS.md`).
