@@ -143,7 +143,7 @@ describe('working slice: App → Sheet → Calendar → Drive', () => {
     // The mock fails calls outright (the live adapter does the retrying); this checks what the person is told.
     s.mock.failures.set('sheets429');
     const res = await post(cookie, form(valid()));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
     expect(((await res.json()) as { error: { message: string } }).error.message).toMatch(
       /try again/,
     );

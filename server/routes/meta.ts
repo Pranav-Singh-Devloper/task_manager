@@ -1,22 +1,23 @@
 import { Router } from 'express';
-import type { GoogleServices } from '../services/google/types';
-import { loadMeta } from '../services/meta';
+import type { DataLayer } from '../services/data';
 
-export function metaRouter(google: GoogleServices): Router {
+export function metaRouter(data: DataLayer): Router {
   const router = Router();
 
+  /** Everything the UI needs to draw forms and tables: categories, fields, workspaces, settings. */
   router.get('/meta', async (_req, res) => {
-    const state = await google.state.read();
-    if (!state?.activeSpreadsheetId) {
-      res.status(503).json({
-        error: {
-          code: 'not_set_up',
-          message: 'The app is not set up yet. The owner needs to sign in once first.',
-        },
-      });
-      return;
-    }
-    res.json(await loadMeta(google, state.activeSpreadsheetId));
+    const { store } = await data.use();
+    const snap = await store.snapshot();
+    const { config } = snap;
+    res.json({
+      categories: config.categories,
+      fields: config.fields,
+      workspaces: config.workspaces,
+      settings: config.settings,
+      // Config rows that were skipped, and cells that could not be read, in plain words.
+      problems: config.problems,
+      attention: [...snap.categories.values()].flatMap((c) => c.attention),
+    });
   });
 
   return router;
