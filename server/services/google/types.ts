@@ -51,6 +51,8 @@ export interface SheetsRepo {
   /** Overwrite a block of rows starting at a 1-based row, column A. */
   updateRows(spreadsheetId: string, gid: number, startRow: number, rows: Cell[][]): Promise<void>;
   growGrid(spreadsheetId: string, gid: number, rows: number, columns: number): Promise<void>;
+  /** Removes one 1-based row. Rows below move up, so cached row positions must be reloaded after. */
+  deleteRow(spreadsheetId: string, gid: number, row: number): Promise<void>;
   formatTab(spreadsheetId: string, gid: number, format: TabFormat): Promise<void>;
   // Batched forms: one API call for many tabs, so a first-run setup stays far under the write quota.
   addTabs(spreadsheetId: string, specs: TabSpec[]): Promise<TabInfo[]>;

@@ -163,6 +163,12 @@ export class MockSheets implements SheetsRepo {
     t.rowCount = Math.max(t.rowCount, t.rows.length);
   }
 
+  async deleteRow(spreadsheetId: string, gid: number, row: number): Promise<void> {
+    this.failures.check('sheets');
+    const t = this.tab(spreadsheetId, gid);
+    if (row >= 1 && row <= t.rows.length) t.rows.splice(row - 1, 1);
+  }
+
   async growGrid(spreadsheetId: string, gid: number, rows: number, columns: number): Promise<void> {
     this.failures.check('sheets');
     const t = this.tab(spreadsheetId, gid);

@@ -269,6 +269,24 @@ export class LiveSheets implements SheetsRepo {
     );
   }
 
+  async deleteRow(spreadsheetId: string, gid: number, row: number): Promise<void> {
+    const api = await this.api();
+    await run(this.ctx, () =>
+      api.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              deleteDimension: {
+                range: { sheetId: gid, dimension: 'ROWS', startIndex: row - 1, endIndex: row },
+              },
+            },
+          ],
+        },
+      }),
+    );
+  }
+
   async growGrid(spreadsheetId: string, gid: number, rows: number, columns: number): Promise<void> {
     const tabs = await this.getTabs(spreadsheetId);
     const tab = tabs.find((t) => t.gid === gid);
