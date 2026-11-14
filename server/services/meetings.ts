@@ -3,7 +3,9 @@ import { isUlid } from '../../shared/ids';
 import type { Meeting, SystemFields } from '../../shared/meeting';
 import type { FieldValue, MeetingStatus } from '../../shared/types';
 import { NOT_EDITABLE, validateValues } from '../../shared/validation';
+import { format, parseISO } from 'date-fns';
 import {
+  AppError,
   ConflictError,
   NotFoundError,
   UndoUnavailableError,
@@ -11,7 +13,7 @@ import {
 } from '../lib/errors';
 import type { AuditAction, ChangeSource, RescheduleEntry } from './audit';
 import type { CategoryConfig } from './config';
-import { toMeeting } from './meetingView';
+import { titleOf, toMeeting } from './meetingView';
 import { parseRow, serializeRow, type RowRecord } from './rows';
 import type { Snapshot, SheetStore } from './store';
 import { UndoService, type UndoRecord, type UndoStep } from './undo';
@@ -39,6 +41,51 @@ export interface CreateInput {
   values: Record<string, unknown>;
   previousId?: string;
 }
+
+export interface CompleteInput {
+  /** Notes from the meeting. Added to Details under a dated heading. */
+  notes?: string;
+  /** The next sitting. `id` is made by the client, so a retried save never makes two. */
+  next?: { id: string; date: string; start_time: string; end_time?: string | null };
+  /** "Not decided yet". Only counts for categories that have a case key (§7.6). */
+  awaitingNext?: boolean;
+  rev: number;
+  /** Make a second next meeting even though one exists already (§9 rule 21). */
+  allowSecondNext?: boolean;
+}
+
+export interface CompleteResult extends MutationResult {
+  next: Meeting | null;
+  /** True when this next meeting had been saved already, so nothing new was made. */
+  existing: boolean;
+}
+
+/** A short description of a neighbouring meeting in a series, for links on the detail page. */
+export interface MeetingSummary {
+  id: string;
+  title: string;
+  date: string | null;
+  start_time: string | null;
+  status: string | null;
+}
+
+/** Fields every category has. The done flow copies the ones in COPY_CORE and every category-specific field. */
+const CORE_KEYS = new Set([
+  'sr_no',
+  'date',
+  'start_time',
+  'end_time',
+  'topic',
+  'meeting_status',
+  'meeting_link',
+  'files',
+  'remarks',
+  'details',
+  'workspace',
+  'reminder_minutes',
+]);
+const COPY_CORE = ['topic', 'meeting_link', 'workspace', 'reminder_minutes'];
+const MAX_NOTES = 20000;
 
 export interface ListOptions {
   scope?: 'upcoming' | 'past' | 'all';
@@ -102,7 +149,7 @@ interface Plan {
   action: AuditAction;
   changes: Record<string, [unknown, unknown]>;
   reschedule?: Omit<RescheduleEntry, 'meetingId' | 'categorySlug' | 'source'>;
-  undo?: Pick<UndoRecord, 'revert' | 'label'>;
+  undo?: Pick<UndoRecord, 'revert' | 'label' | 'also'>;
   source?: ChangeSource;
 }
 
@@ -588,6 +635,203 @@ export class MeetingService {
         },
       };
     });
+  }
+
+  // ---------- the done flow ----------
+
+  /** The meeting before and after this one in a series (linked by previous_id). */
+  async neighbors(
+    id: string,
+  ): Promise<{ previous: MeetingSummary | null; next: MeetingSummary | null }> {
+    const snap = await this.store.snapshot();
+    const found = this.locate(snap, id);
+    if (!found) throw new NotFoundError("We couldn't find that meeting.");
+    const data = snap.categories.get(found.slug)!;
+    const self = data.entries.get(id)!;
+    const summary = (e: {
+      record: { values: Record<string, FieldValue>; system: SystemFields };
+    }): MeetingSummary => ({
+      id: e.record.system.id,
+      title: titleOf(snap, found.slug, e.record.values),
+      date: (e.record.values.date as string) ?? null,
+      start_time: (e.record.values.start_time as string) ?? null,
+      status: (e.record.values.meeting_status as string) ?? null,
+    });
+    const prevId = self.record.system.previous_id;
+    const prev = prevId ? data.entries.get(prevId) : undefined;
+    const followers = [...data.entries.values()]
+      .filter((e) => e.record.system.previous_id === id && !e.record.system.deleted_at)
+      .sort((a, b) => String(a.record.values.date).localeCompare(String(b.record.values.date)));
+    return {
+      previous: prev && !prev.record.system.deleted_at ? summary(prev) : null,
+      next: followers[0] ? summary(followers[0]) : null,
+    };
+  }
+
+  /**
+   * Closes the loop: Plan, get reminded, attend, then record the outcome and the next date (§1.1, §7.6).
+   * Marks the meeting done, adds notes, and (if there is a next date) makes the next meeting in the same category,
+   * copying its category fields and linking it back. One Undo reverses both.
+   */
+  async complete(id: string, input: CompleteInput, actor: Actor): Promise<CompleteResult> {
+    const first = await this.store.snapshot();
+
+    // A retried save: the next meeting is already there, so this has already worked.
+    if (input.next && this.locate(first, input.next.id)) {
+      const again = await this.get(id);
+      return {
+        meeting: again,
+        next: await this.get(input.next.id),
+        existing: true,
+        undoToken: null,
+      };
+    }
+
+    const current = await this.get(id);
+    // Refuse a stale rev now, before anything is created.
+    if (current.rev !== input.rev) throw new ConflictError();
+    const cfg = first.config.byCategory.get(current.category_slug)!;
+    const notes = (input.notes ?? '').trim();
+    if (notes.length > MAX_NOTES) {
+      throw new ValidationFailed([
+        {
+          field: 'notes',
+          message: 'The notes are too long. Please keep them under 20,000 characters.',
+        },
+      ]);
+    }
+    const status = (current.values.meeting_status || 'Scheduled') as MeetingStatus;
+    const alreadyDone = status === 'Completed';
+    if (!alreadyDone && !canTransition(status, 'Completed')) {
+      throw new ValidationFailed([
+        { field: 'meeting_status', message: 'That change of status is not possible.' },
+      ]);
+    }
+
+    // Only one next meeting per meeting, unless the person says to make another anyway (§9 rule 21).
+    if (input.next && !input.allowSecondNext) {
+      const data = first.categories.get(current.category_slug)!;
+      const existing = [...data.entries.values()].find(
+        (e) =>
+          e.record.system.previous_id === id &&
+          !e.record.system.deleted_at &&
+          e.id !== input.next!.id,
+      );
+      if (existing) {
+        const date = String(existing.record.values.date ?? '');
+        throw new AppError(
+          409,
+          'next_exists',
+          `This meeting already has a next meeting on ${date ? format(parseISO(date), 'EEE, d MMM yyyy') : 'another date'}.`,
+          undefined,
+          { existing_id: existing.id, existing_date: date },
+        );
+      }
+    }
+
+    // 1. The next meeting first: if its details are wrong, nothing has been changed yet.
+    let nextMeeting: Meeting | null = null;
+    if (input.next) {
+      const copied: Record<string, unknown> = {};
+      for (const f of cfg.fields) {
+        if (f.archived || f.type === 'computed' || f.type === 'auto_number' || f.type === 'file')
+          continue;
+        if (!CORE_KEYS.has(f.key) || COPY_CORE.includes(f.key))
+          copied[f.key] = current.values[f.key];
+      }
+      let end = input.next.end_time ?? null;
+      const oldStart = current.values.start_time;
+      const oldEnd = current.values.end_time;
+      const startNext = parseTimeLoose(input.next.start_time) ?? input.next.start_time;
+      if (!end && typeof oldStart === 'string' && typeof oldEnd === 'string') {
+        const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+        end = addMinutesToTime(startNext, mins(oldEnd) - mins(oldStart));
+      }
+      const made = await this.create(
+        {
+          id: input.next.id,
+          category: current.category_slug,
+          values: { ...copied, date: input.next.date, start_time: startNext, end_time: end },
+          previousId: id,
+        },
+        actor,
+      );
+      nextMeeting = made.meeting;
+    }
+
+    // 2. Then this meeting. If that fails (it was changed elsewhere), take the next meeting back out.
+    try {
+      const heading = `— Notes, ${format(parseISO(String(current.values.date)), 'EEE, d MMM yyyy')} —`;
+      const awaiting =
+        Boolean(input.awaitingNext) &&
+        !input.next &&
+        cfg.fields.some((f) => f.case_key && !f.archived);
+      const result = await this.mutate(id, input.rev, actor, (c) => {
+        const next = { ...c.record.values };
+        const before = c.record.values;
+        if (!alreadyDone) {
+          next.meeting_status = 'Completed';
+          if (notes) {
+            const existing = typeof before.details === 'string' ? before.details : '';
+            next.details = `${existing ? `${existing}\n\n` : ''}${heading}\n${notes}`;
+          }
+        }
+        const awaitingAfter = alreadyDone ? false : awaiting;
+        const changes = diff(before, next, ['meeting_status', 'details']) as Record<
+          string,
+          [unknown, unknown]
+        >;
+        if (c.record.system.awaiting_next !== awaitingAfter) {
+          changes.awaiting_next = [c.record.system.awaiting_next, awaitingAfter];
+        }
+        if (Object.keys(changes).length === 0) return null;
+        return {
+          values: next,
+          system: {
+            awaiting_next: awaitingAfter,
+            ...(alreadyDone ? {} : { calendar_sync: 'pending' as const }),
+          },
+          action: 'complete',
+          changes,
+          undo: {
+            label: 'Meeting marked done',
+            revert: {
+              values: Object.fromEntries(
+                (['meeting_status', 'details'] as const)
+                  .filter((k) => k in changes)
+                  .map((k) => [k, before[k] ?? null]),
+              ) as Record<string, FieldValue>,
+              awaiting_next: c.record.system.awaiting_next,
+            },
+            also: nextMeeting
+              ? {
+                  meetingId: nextMeeting.id,
+                  categorySlug: nextMeeting.category_slug,
+                  expectedRev: nextMeeting.rev,
+                  revert: { values: {}, deleted_at: c.now.toISOString() },
+                }
+              : undefined,
+          },
+        };
+      });
+      let undoToken = result.undoToken;
+      if (!undoToken && nextMeeting) {
+        // Nothing about this meeting changed (it was already done), so Undo just takes the new next meeting back out.
+        undoToken = this.undo.issue({
+          meetingId: nextMeeting.id,
+          categorySlug: nextMeeting.category_slug,
+          expectedRev: nextMeeting.rev,
+          user: actor.email,
+          revert: { values: {}, deleted_at: this.store.now().toISOString() },
+          label: 'Next meeting scheduled',
+        });
+      }
+      return { meeting: result.meeting, next: nextMeeting, existing: false, undoToken };
+    } catch (err) {
+      if (nextMeeting)
+        await this.remove(nextMeeting.id, nextMeeting.rev, actor).catch(() => undefined);
+      throw err;
+    }
   }
 
   // ---------- undo ----------
