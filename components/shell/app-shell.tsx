@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { CloseIcon, MenuIcon } from '../icons';
 import { Button, buttonClasses } from '../ui/button';
-import { NAV_ITEMS, isActive } from './nav-items';
+import { NAV_ITEMS, isActive, isFormPage } from './nav-items';
 import { SidebarContent } from './sidebar-content';
 import { SignInBanner } from './sign-in-banner';
 import { SignOutButton } from './sign-out-button';
@@ -84,16 +84,18 @@ export function AppShell({ userName, children }: { userName: string; children: R
         {children}
       </main>
 
-      <Link
-        href="/meetings/new"
-        className={buttonClasses(
-          'primary',
-          'lg',
-          'fixed bottom-4 right-4 z-30 rounded-full shadow-lg md:hidden',
-        )}
-      >
-        {t('newMeeting')}
-      </Link>
+      {!isFormPage(pathname) && (
+        <Link
+          href="/meetings/new"
+          className={buttonClasses(
+            'primary',
+            'lg',
+            'fixed bottom-4 right-4 z-30 rounded-full shadow-lg md:hidden',
+          )}
+        >
+          {t('newMeeting')}
+        </Link>
+      )}
     </div>
   );
 }

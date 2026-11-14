@@ -1,11 +1,10 @@
-import { getTranslations } from 'next-intl/server';
+import { NewMeetingScreen } from '@/components/meeting/new-meeting-screen';
 
-export default async function Page() {
-  const t = await getTranslations('newMeeting');
-  return (
-    <>
-      <h1 className="mb-4">{t('title')}</h1>
-      <p>{t('placeholder')}</p>
-    </>
-  );
+export default async function NewMeetingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; keep?: string; from?: string }>;
+}) {
+  const { category, keep, from } = await searchParams;
+  return <NewMeetingScreen category={category} keep={keep === '1'} changing={Boolean(from)} />;
 }

@@ -13,3 +13,12 @@ export type NavKey = (typeof NAV_ITEMS)[number]['key'];
 export function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/** Pages with a sticky Save bar. The floating "+ New meeting" button would sit on top of it, so it is hidden there. */
+export function isFormPage(pathname: string): boolean {
+  return (
+    pathname === '/meetings/new' ||
+    pathname === '/categories/new' ||
+    /^\/meetings\/[^/]+\/(edit|reschedule|done)$/.test(pathname)
+  );
+}
