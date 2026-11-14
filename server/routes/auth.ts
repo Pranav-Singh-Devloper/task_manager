@@ -34,9 +34,25 @@ export function authRouter({ env, google, auth, logger }: AuthDeps): Router {
   const router = Router();
   const secret = new TextEncoder().encode(env.sessionSecret);
 
-  router.use(
-    rateLimit({ windowMs: 60_000, limit: 40, standardHeaders: true, legacyHeaders: false }),
-  );
+  // Only the endpoints that start or finish a Google sign-in are limited tightly. /me and /logout are cheap
+  // and the shell calls /me on every page load, so a tight limit there would lock people out.
+  const limited = (limit: number) =>
+    rateLimit({
+      windowMs: 60_000,
+      limit,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (_req, res) => {
+        res.status(429).json({
+          error: {
+            code: 'rate_limited',
+            message: 'Too many sign-in attempts. Please wait a minute and try again.',
+          },
+        });
+      },
+    });
+  router.use(['/google', '/google/callback'], limited(30));
+  router.use(['/me', '/logout'], limited(600));
 
   /** Shared by the real Google callback and the mock sign-in. */
   async function finish(
@@ -145,14 +161,12 @@ export function authRouter({ env, google, auth, logger }: AuthDeps): Router {
 
   router.post('/logout', (req: Request, res: Response) => {
     if (req.headers[CSRF_HEADER] !== CSRF_VALUE) {
-      res
-        .status(403)
-        .json({
-          error: {
-            code: 'csrf',
-            message: 'That request could not be checked. Please reload the page and try again.',
-          },
-        });
+      res.status(403).json({
+        error: {
+          code: 'csrf',
+          message: 'That request could not be checked. Please reload the page and try again.',
+        },
+      });
       return;
     }
     res.clearCookie(SESSION_COOKIE, cookieOptions(env));

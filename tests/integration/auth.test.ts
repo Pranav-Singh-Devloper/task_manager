@@ -168,3 +168,23 @@ describe('GET /api/meta', () => {
     expect(res.status).toBe(503);
   });
 });
+
+describe('rate limiting', () => {
+  it('slows down repeated sign-in attempts, with a plain message', async () => {
+    s = await startServer({ seed: 'demo' });
+    let last: Response | undefined;
+    for (let i = 0; i < 31; i += 1) last = await s.get('/api/auth/google?as=stranger@gmail.com');
+    expect(last?.status).toBe(429);
+    expect(((await last!.json()) as { error: { message: string } }).error.message).toMatch(
+      /wait a minute/,
+    );
+  });
+
+  it('does not limit the status check the shell makes on every page', async () => {
+    s = await startServer({ seed: 'demo' });
+    const cookie = await s.signIn();
+    for (let i = 0; i < 100; i += 1) {
+      expect((await s.get('/api/auth/me', withSession(cookie))).status).toBe(200);
+    }
+  });
+});
