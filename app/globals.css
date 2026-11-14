@@ -92,3 +92,78 @@ html[data-contrast='high'] .chip {
 .fade-in {
   animation: fade-in 150ms ease-out;
 }
+
+/* The calendar (FullCalendar). Its own styles are added by the library; these make it follow Rule Zero. */
+.mm-cal .fc {
+  --fc-border-color: var(--border-soft);
+  --fc-page-bg-color: var(--surface);
+  --fc-neutral-bg-color: var(--bg);
+  --fc-today-bg-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-size: 1rem;
+  color: var(--text);
+}
+.mm-cal .fc-event {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mm-cal .fc-daygrid-event-harness {
+  margin-block: 2px;
+}
+.mm-cal .fc-more-link {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+}
+.mm-cal .fc-col-header-cell-cushion,
+.mm-cal .fc-daygrid-day-number,
+.mm-cal .fc-list-day-text,
+.mm-cal .fc-list-day-side-text {
+  color: var(--text);
+  font-weight: 600;
+}
+.mm-cal .fc-daygrid-day {
+  min-height: 5rem;
+}
+.mm-cal .fc-list-event td {
+  min-height: 3rem;
+  padding-block: 0.75rem;
+}
+.mm-cal .mm-picked-day {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+html[data-contrast='high'] .mm-cal .fc {
+  --fc-border-color: #000;
+}
+html[data-contrast='high'] .mm-cal .fc-theme-standard td,
+html[data-contrast='high'] .mm-cal .fc-theme-standard th {
+  border-width: 2px;
+}
+/* On a phone a meeting in the month grid is just a dot in its category colour; tapping the day lists the meetings. */
+.mm-cal-mobile .fc-daygrid-event {
+  min-height: 0;
+}
+.mm-cal-mobile .fc-daygrid-dot-event .fc-event-title,
+.mm-cal-mobile .fc-daygrid-dot-event .fc-event-time {
+  display: none;
+}
+.mm-cal-mobile .fc-daygrid-event-dot {
+  margin: 0 2px;
+}
+/* Days from the neighbouring month stay fully readable: they are marked by a tinted background, not by faded text. */
+.mm-cal .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+.mm-cal .fc-day-other {
+  background: var(--bg);
+}
+.mm-cal .fc-day-other .fc-daygrid-day-number {
+  font-weight: 400;
+}

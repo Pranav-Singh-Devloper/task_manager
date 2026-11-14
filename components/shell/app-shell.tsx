@@ -36,7 +36,7 @@ export function AppShell({ userName, children }: { userName: string; children: R
         <SidebarContent />
       </aside>
 
-      <header className="sticky top-0 z-30 border-b-ui border-line bg-surface">
+      <header className="z-30 border-b-ui border-line bg-surface md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 md:px-8">
           <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
             <Dialog.Trigger asChild>

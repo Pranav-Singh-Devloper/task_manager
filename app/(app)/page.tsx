@@ -1,11 +1,11 @@
-import { getTranslations } from 'next-intl/server';
+import { Suspense } from 'react';
+import { DashboardScreen } from '@/components/dashboard/dashboard-screen';
 
-export default async function Page() {
-  const t = await getTranslations('dashboard');
+export default function DashboardPage() {
+  // The screen reads the address bar for its search and filters, which needs a Suspense boundary.
   return (
-    <>
-      <h1 className="mb-4">{t('title')}</h1>
-      <p>{t('placeholder')}</p>
-    </>
+    <Suspense fallback={null}>
+      <DashboardScreen />
+    </Suspense>
   );
 }
