@@ -1,11 +1,5 @@
-import { getTranslations } from 'next-intl/server';
+import { SettingsScreen } from '@/components/settings/settings-screen';
 
-export default async function Page() {
-  const t = await getTranslations('settings');
-  return (
-    <>
-      <h1 className="mb-4">{t('title')}</h1>
-      <p>{t('placeholder')}</p>
-    </>
-  );
+export default function Page() {
+  return <SettingsScreen />;
 }
