@@ -39,6 +39,24 @@ Format: date · decision · why · how to undo it.
 - **A user who unticks Calendar or Drive on Google's permission screen** gets a plain message asking them to sign in again with both ticked, and nothing is saved.
 - **The live Google adapters are covered by tests of their pure parts** (retries, error mapping, A1 quoting, format requests, Drive queries) and by the mock adapters sharing the same interfaces. They have not yet been run against real Google. See the open items below.
 
+## 2026-11-14 (M3)
+
+- **"Not decided yet" is stored in a new `awaiting_next` system column.** It is TRUE only for a done meeting in a category that has a case key and whose next date is not decided; it is cleared when a next meeting is scheduled. For other categories "Not decided yet" counts as No (§7.6). An existing database gets the extra column appended to each category tab the first time it is loaded, and it is visible in the Sheet (new tabs hide their system columns when they are created).
+- **Adding files is not in the form or on the meeting page yet.** The spec lists it, but file upload is M5, and Rule Zero says nothing unbuilt is shown. Files, Add file and the Calendar status line arrive with M5.
+- **After saving, the notice says "Meeting saved."**, not "...and added to your Google Calendar". Calendar sync is M5; the message changes then.
+- **Returning after a reschedule goes to an explicit place, not the browser's back.** It is the meeting by default, or any in-app path passed as `?return=`, which the dashboard will use in M4. Going "back" in the browser could leave the app when the page was opened directly.
+- **The done page has no default answer.** The person must choose Yes, No or Not decided yet. It costs one tap but prevents closing a case without ever deciding about the next date. Undo: set a default in `done-screen.tsx`.
+- **"Same time next week" keeps the weekday of the original meeting and is always in the future**: one week after the original, or the next such weekday if that has passed. "Same time tomorrow" is tomorrow. Both only fill in the fields; nothing is saved until Save.
+- **A second next meeting asks first**, with Open existing and Create another anyway. A Replace button was left out: it would delete a meeting, which is a bigger step than the page should hide behind one tap.
+- **Reminders are stored blank when the person leaves the default ticks**, so changing the default in Settings changes every meeting that uses it (§6.5). Only a different choice is saved on the meeting.
+- **Dropdown learning counts a value each time it is used or changed**, not on unrelated edits. A different spelling of an existing value reuses it. The 36 states and other fixed lists never learn.
+- **Cancel on a form keeps the draft.** An accidental tap on Cancel should not cost typing; the draft is offered back (Restore or Discard) the next time.
+- **New categories can be added by anyone signed in**, from the picker. The category gets the core columns, the first workspace as its default, and a tab named after it (with a number added if the name is taken).
+- **Sidebar "+ New meeting" button** has less side padding than other large buttons so the label stays on one line in 240 px.
+- **TanStack Query** is used for screen data with a 30 second stale time (SPEC §4.1), so moving between screens is quick and a change refreshes what is on screen.
+- **Until the Trash page exists (M6), a deleted meeting can only be brought back with Undo (10 minutes) or its direct link.** The delete confirmation says "You can bring it back from Trash" as the spec requires, which becomes fully true in M6.
+- **The first-time-user test is automated as a timed run** (create, reschedule, mark done with a next date, under 90 seconds). The real test with a person who has never seen the app is still for the maintainer to run.
+
 ## 2026-11-14 (M2)
 
 - **One guarded path changes a meeting row.** It takes the tab's lock, re-reads the live row, checks the id cell is where the cache says (re-indexing the tab if the owner sorted the Sheet), checks the rev, validates, writes, updates the cache, then logs. Reading the live row also means a stale cache can never overwrite a newer Sheet edit.

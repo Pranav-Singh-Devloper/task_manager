@@ -17,22 +17,25 @@ The core loop: Plan, then get reminded, then attend, then record the outcome and
 
 ## Tasks
 
-- [ ] Form field controls: text, long_text, number with unit, date, time, select (radio chips or combobox), multi_select, checkbox, url with Test link, file placeholder, read-only computed and auto_number
-- [ ] `/meetings/new` and `/meetings/[id]/edit`
-- [ ] `/meetings/[id]` detail with history sections
-- [ ] `/meetings/[id]/reschedule`
-- [ ] `/meetings/[id]/done`, plus "Schedule next meeting" from detail
-- [ ] Complete route (`POST /meetings/:id/complete`), reschedule route, status route, delete and restore routes
-- [ ] Undo wiring for every mutating action
-- [ ] "Not decided yet" tracking for categories with a `case_key`
-- [ ] Series rule: second "next" from the same meeting prompts
-- [ ] Playwright flows on both viewports; first-time-user check
+- [x] Form field controls: text, long_text, number with unit, date, time, select (radio chips or combobox), multi_select, checkbox, url with Test link, read-only computed and auto_number (file upload is M5)
+- [x] `/meetings/new` and `/meetings/[id]/edit`
+- [x] `/meetings/[id]` detail with history sections
+- [x] `/meetings/[id]/reschedule`
+- [x] `/meetings/[id]/done`, plus "Schedule next meeting" from detail
+- [x] Complete route (`POST /meetings/:id/complete`), reschedule route, status route, delete and restore routes
+- [x] Undo wiring for every mutating action
+- [x] "Not decided yet" tracking for categories with a `case_key`
+- [x] Series rule: second "next" from the same meeting prompts
+- [x] Playwright flows on both viewports; first-time-user check
 
 ## Definition of done
 
-- CCIE and AT forms match SPEC §6.7 exactly.
-- Required rules work.
-- Rescheduling takes 3 taps and logs history.
-- Marking done with a next date creates the linked next meeting.
-- Every undo works. Delete is undoable.
+- [x] CCIE and AT forms match SPEC §6.7 exactly.
+- [x] Required rules work.
+- [x] Rescheduling takes 3 taps and logs history.
+- [x] Marking done with a next date creates the linked next meeting.
+- [x] Every undo works. Delete is undoable.
+- [x] Automated first-time-user run under 90 seconds. The test with a person who has never seen the app is still to do.
 - Tag `m3-done`.
+
+Also built in this phase: learning dropdowns (moved here from M2) and the add-a-category page.
