@@ -71,22 +71,16 @@ export async function createDatabase(
     });
   }
 
-  // The new spreadsheet's first tab (gid 0) becomes the first category tab; the rest are added.
+  // The new spreadsheet's first tab (gid 0) becomes the first category tab; the rest are added in one call.
   const gids = new Map<string, number>();
-  for (const [i, tab] of tabs.entries()) {
-    if (i === 0) {
-      await google.sheets.renameTab(id, 0, tab.title);
-      gids.set(tab.title, 0);
-    } else {
-      const info = await google.sheets.addTab(
-        id,
-        tab.title,
-        1000,
-        Math.max(26, tab.headers.length),
-      );
-      gids.set(tab.title, info.gid);
-    }
-  }
+  const [first, ...rest] = tabs;
+  await google.sheets.renameTab(id, 0, (first as (typeof tabs)[number]).title);
+  gids.set((first as (typeof tabs)[number]).title, 0);
+  const created = await google.sheets.addTabs(
+    id,
+    rest.map((t) => ({ title: t.title, rows: 1000, columns: Math.max(26, t.headers.length) })),
+  );
+  for (const info of created) gids.set(info.title, info.gid);
   for (const cat of config.categories)
     cat.sheet_gid = gids.get(config.tabTitles[cat.slug] as string) ?? null;
 
@@ -101,19 +95,30 @@ export async function createDatabase(
     ],
   };
 
-  for (const tab of tabs) {
-    const gid = gids.get(tab.title) as number;
-    const body = fixedRows[tab.title] ?? [];
-    await google.sheets.updateRows(id, gid, 1, [tab.headers, ...body]);
-    await google.sheets.formatTab(id, gid, {
-      frozenRows: 1,
-      protectHeader: true,
-      hidden: tab.hidden,
-      hiddenColumns:
-        tab.systemFrom === null ? [] : SYSTEM_COLUMNS.map((_, i) => (tab.systemFrom as number) + i),
-      headerNotes: Object.fromEntries(tab.computedCols.map((c) => [c, 'Calculated in the app'])),
-    });
-  }
+  await google.sheets.writeBlocks(
+    id,
+    tabs.map((tab) => ({
+      gid: gids.get(tab.title) as number,
+      startRow: 1,
+      rows: [tab.headers, ...(fixedRows[tab.title] ?? [])],
+    })),
+  );
+  await google.sheets.formatTabs(
+    id,
+    tabs.map((tab) => ({
+      gid: gids.get(tab.title) as number,
+      format: {
+        frozenRows: 1,
+        protectHeader: true,
+        hidden: tab.hidden,
+        hiddenColumns:
+          tab.systemFrom === null
+            ? []
+            : SYSTEM_COLUMNS.map((_, i) => (tab.systemFrom as number) + i),
+        headerNotes: Object.fromEntries(tab.computedCols.map((c) => [c, 'Calculated in the app'])),
+      },
+    })),
+  );
 
   return { spreadsheetId: id, config, headers };
 }

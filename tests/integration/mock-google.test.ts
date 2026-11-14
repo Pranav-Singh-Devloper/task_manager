@@ -148,3 +148,33 @@ describe('mock Sheets and Drive', () => {
     expect(copy.appProperties.role).toBe('backup');
   });
 });
+
+describe('batched Sheets calls', () => {
+  it('creating the whole database takes a handful of Sheets calls, not dozens', async () => {
+    const { services } = await createMockGoogle({ seed: 'empty' });
+    let calls = 0;
+    const counted = new Proxy(services.sheets, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        return typeof value === 'function'
+          ? (...args: unknown[]) => {
+              calls += 1;
+              return (value as (...a: unknown[]) => unknown).apply(target, args);
+            }
+          : value;
+      },
+    });
+    const { createDatabase } = await import('../../server/services/databaseSeed');
+    await createDatabase({ drive: services.drive, sheets: counted }, new Date());
+    expect(calls).toBeLessThanOrEqual(5);
+  });
+
+  it('addTabs refuses duplicates without creating any tab', async () => {
+    const { services } = await createMockGoogle({ seed: 'empty' });
+    const file = await services.drive.createSpreadsheetFile('db', {});
+    await expect(
+      services.sheets.addTabs(file.id, [{ title: 'A' }, { title: 'Sheet1' }]),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(await services.sheets.getTabs(file.id)).toHaveLength(1);
+  });
+});

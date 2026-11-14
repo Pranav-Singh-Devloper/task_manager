@@ -1,6 +1,6 @@
 import type { Cell } from '../../../../shared/types';
 import { GoogleApiError } from '../errors';
-import type { SheetsRepo, TabFormat, TabInfo } from '../types';
+import type { SheetsRepo, TabFormat, TabInfo, TabSpec, TabWrite } from '../types';
 import type { FailureInjector } from './failure';
 import type { MockSpreadsheet, MockTab, MockWorld } from './world';
 
@@ -48,6 +48,46 @@ export class MockSheets implements SheetsRepo {
 
   async addTab(spreadsheetId: string, title: string, rows = 1000, columns = 26): Promise<TabInfo> {
     this.failures.check('sheets');
+    return this.createTab(spreadsheetId, title, rows, columns);
+  }
+
+  async addTabs(spreadsheetId: string, specs: TabSpec[]): Promise<TabInfo[]> {
+    this.failures.check('sheets');
+    // Like the real batchUpdate, nothing is created if any title is already taken.
+    const s = this.sheet(spreadsheetId);
+    const taken = new Set([...s.tabs.values()].map((t) => t.title));
+    for (const spec of specs) {
+      if (taken.has(spec.title)) {
+        throw new GoogleApiError(
+          400,
+          `A sheet with the name "${spec.title}" already exists.`,
+          'badRequest',
+        );
+      }
+      taken.add(spec.title);
+    }
+    return specs.map((spec) =>
+      this.createTab(spreadsheetId, spec.title, spec.rows ?? 1000, spec.columns ?? 26),
+    );
+  }
+
+  async writeBlocks(spreadsheetId: string, blocks: TabWrite[]): Promise<void> {
+    this.failures.check('sheets');
+    for (const b of blocks) this.write(spreadsheetId, b.gid, b.startRow, b.rows);
+  }
+
+  async formatTabs(
+    spreadsheetId: string,
+    items: { gid: number; format: TabFormat }[],
+  ): Promise<void> {
+    this.failures.check('sheets');
+    for (const i of items) {
+      const t = this.tab(spreadsheetId, i.gid);
+      t.format = { ...t.format, ...i.format };
+    }
+  }
+
+  private createTab(spreadsheetId: string, title: string, rows: number, columns: number): TabInfo {
     const s = this.sheet(spreadsheetId);
     if ([...s.tabs.values()].some((t) => t.title === title)) {
       throw new GoogleApiError(
@@ -109,6 +149,10 @@ export class MockSheets implements SheetsRepo {
     rows: Cell[][],
   ): Promise<void> {
     this.failures.check('sheets');
+    this.write(spreadsheetId, gid, startRow, rows);
+  }
+
+  private write(spreadsheetId: string, gid: number, startRow: number, rows: Cell[][]): void {
     const t = this.tab(spreadsheetId, gid);
     rows.forEach((values, i) => {
       const idx = startRow - 1 + i;

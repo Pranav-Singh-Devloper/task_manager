@@ -23,6 +23,19 @@ export interface TabFormat {
   hidden?: boolean;
 }
 
+export interface TabSpec {
+  title: string;
+  rows?: number;
+  columns?: number;
+}
+
+export interface TabWrite {
+  gid: number;
+  /** 1-based row to start writing at, column A. */
+  startRow: number;
+  rows: Cell[][];
+}
+
 export interface SheetsRepo {
   getTabs(spreadsheetId: string): Promise<TabInfo[]>;
   addTab(spreadsheetId: string, title: string, rows?: number, columns?: number): Promise<TabInfo>;
@@ -39,6 +52,10 @@ export interface SheetsRepo {
   updateRows(spreadsheetId: string, gid: number, startRow: number, rows: Cell[][]): Promise<void>;
   growGrid(spreadsheetId: string, gid: number, rows: number, columns: number): Promise<void>;
   formatTab(spreadsheetId: string, gid: number, format: TabFormat): Promise<void>;
+  // Batched forms: one API call for many tabs, so a first-run setup stays far under the write quota.
+  addTabs(spreadsheetId: string, specs: TabSpec[]): Promise<TabInfo[]>;
+  writeBlocks(spreadsheetId: string, blocks: TabWrite[]): Promise<void>;
+  formatTabs(spreadsheetId: string, items: { gid: number; format: TabFormat }[]): Promise<void>;
 }
 
 // ---------- Drive ----------
