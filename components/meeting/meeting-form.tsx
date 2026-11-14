@@ -18,10 +18,11 @@ import type { Meta } from '@/lib/queries';
 import { useUndoToast } from '@/lib/use-undo-toast';
 import { addMinutesToTime, shiftDate, todayIn } from '@/shared/dates';
 import { newId } from '@/shared/ids';
-import type { Meeting } from '@/shared/meeting';
+import type { Meeting, MeetingFile } from '@/shared/meeting';
 import type { FieldDef, ValidationIssue } from '@/shared/types';
 import { validateValues } from '@/shared/validation';
 import { FieldControl } from './field-control';
+import { FilesField, type PendingFile } from './files-field';
 import { useDraft } from './use-draft';
 
 /** Fields that have their own place in the form, so they are not repeated under "About this meeting". */
@@ -50,6 +51,8 @@ interface Draft {
   values: Record<string, unknown>;
   duration: Duration;
   reminders: string[];
+  /** Files uploaded but not saved with the meeting yet. */
+  files?: PendingFile[];
   savedAt: string;
 }
 
@@ -119,6 +122,8 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
   const [reminders, setReminders] = useState<string[]>(() =>
     parseReminders(values.reminder_minutes, defaultReminders),
   );
+  const [savedFiles, setSavedFiles] = useState<MeetingFile[]>(() => meeting?.files ?? []);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
   const [banner, setBanner] = useState<Banner>(null);
   const [saving, setSaving] = useState(false);
@@ -137,11 +142,19 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
   useEffect(() => {
     if (!dirty || !draft.canSave) return;
     const timer = setTimeout(
-      () => draft.save({ id, values, duration, reminders, savedAt: new Date().toISOString() }),
+      () =>
+        draft.save({
+          id,
+          values,
+          duration,
+          reminders,
+          files: pendingFiles,
+          savedAt: new Date().toISOString(),
+        }),
       400,
     );
     return () => clearTimeout(timer);
-  }, [dirty, id, values, duration, reminders, draft]);
+  }, [dirty, id, values, duration, reminders, pendingFiles, draft]);
 
   const restore = (d: Draft) => {
     setDirty(true);
@@ -149,7 +162,20 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
     setValues(d.values);
     setDuration(d.duration);
     setReminders(d.reminders);
+    const kept = d.files ?? [];
+    setPendingFiles(kept);
     draft.decide();
+    // Files that were waiting may have been cleared away since (§5.7): ask, and say which ones need adding again.
+    if (kept.length > 0) {
+      const target = mode === 'create' ? d.id : meeting!.id;
+      api<{ ok: Record<string, boolean> }>(
+        `/files/check?meeting_id=${target}&ids=${kept.map((f) => f.id).join(',')}`,
+      )
+        .then((r) =>
+          setPendingFiles((list) => list.map((f) => ({ ...f, expired: r.ok[f.id] === false }))),
+        )
+        .catch(() => undefined);
+    }
   };
 
   // ---- the "when" part ----
@@ -235,24 +261,34 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
       showIssues(checked.issues);
       return;
     }
+    if (pendingFiles.some((f) => f.expired)) {
+      showIssues([{ field: 'form', message: t('filesExpired') }]);
+      return;
+    }
     setIssues([]);
     setSaving(true);
     try {
+      const file_ids = pendingFiles.map((f) => f.id);
       const res =
         mode === 'create'
           ? await api<{ meeting: Meeting; undo_token: string | null }>('/meetings', {
               method: 'POST',
-              body: { id, category: categorySlug, values: body },
+              body: { id, category: categorySlug, values: body, file_ids },
             })
           : await api<{ meeting: Meeting; undo_token: string | null }>(`/meetings/${meeting!.id}`, {
               method: 'PATCH',
-              body: { rev: meeting!.rev, values: body },
+              body: { rev: meeting!.rev, values: body, file_ids },
             });
       draft.clear();
       await client.invalidateQueries();
-      announce(mode === 'create' ? t('saved') : t('changed'), res.undo_token, () =>
-        router.push('/'),
-      );
+      const sync = res.meeting.calendar_sync;
+      const created =
+        sync === 'ok'
+          ? t('savedOnCalendar')
+          : sync === 'error' || sync === 'pending'
+            ? t('savedNoCalendar')
+            : t('saved');
+      announce(mode === 'create' ? created : t('changed'), res.undo_token, () => router.push('/'));
       router.push(`/meetings/${res.meeting.id}`);
     } catch (e) {
       if (e instanceof NetworkError) setBanner({ kind: 'network' });
@@ -447,10 +483,35 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
         {about.map(control)}
       </section>
 
-      {byKey.get('meeting_link') && (
+      {(byKey.has('meeting_link') || byKey.has('files')) && (
         <section aria-labelledby="sec-link" className="flex flex-col gap-5">
           <h2 id="sec-link">{t('sectionLink')}</h2>
-          {control(byKey.get('meeting_link') as FieldDef)}
+          {byKey.get('meeting_link') && control(byKey.get('meeting_link') as FieldDef)}
+          {byKey.has('files') && (
+            <div className="flex flex-col gap-2">
+              <h3 id="files-heading" className="text-xl font-semibold">
+                {t('filesHeading')}
+              </h3>
+              <FilesField
+                meetingId={id}
+                category={categorySlug}
+                context={{
+                  date: typeof values.date === 'string' ? values.date : undefined,
+                  title: typeof values.topic === 'string' ? values.topic : undefined,
+                }}
+                saved={savedFiles}
+                onSavedChange={(m) => {
+                  setSavedFiles(m?.files ?? []);
+                  void client.invalidateQueries();
+                }}
+                pending={pendingFiles}
+                onPendingChange={(list) => {
+                  setDirty(true);
+                  setPendingFiles(list);
+                }}
+              />
+            </div>
+          )}
         </section>
       )}
 
