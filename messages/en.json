@@ -102,5 +102,23 @@
   "banner": {
     "signInAgain": "Please sign in with Google again.",
     "signIn": "Sign in"
+  },
+  "spike": {
+    "title": "Add a test meeting",
+    "intro": "A simple form to check that a meeting reaches your Google Sheet, Calendar and Drive. The full meeting form comes next.",
+    "topic": "Topic",
+    "date": "Date",
+    "time": "Start time",
+    "file": "File",
+    "fileHint": "Optional. A PDF.",
+    "save": "Save meeting",
+    "saving": "Saving…",
+    "failed": "We couldn't save. Your changes are still here. Please try again.",
+    "savedToSheet": "Saved to your Google Sheet (row {row}).",
+    "alreadySaved": "This meeting was already saved (row {row}). Nothing new was added.",
+    "onCalendar": "On your Google Calendar ✓",
+    "notOnCalendar": "Saved, but not on your Google Calendar yet. We will try again.",
+    "fileSaved": "File saved to Google Drive:",
+    "fileFailed": "The meeting is saved, but the file could not be added. Please add it again."
   }
 }
