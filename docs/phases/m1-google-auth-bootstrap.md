@@ -19,14 +19,14 @@ Prove the riskiest part first: one meeting going App, then Sheet, then Calendar,
 
 ## `[Verify]` items (record each result in `DECISIONS.md`)
 
-- [ ] Sheets read and write work on the app-created spreadsheet with the `drive.file` scope alone.
-- [ ] `events.insert` with a custom id works. A reused id returns 409.
-- [ ] A deleted event can be restored through `events.update` with `status: "confirmed"`.
-- [ ] Whether `files.copy` keeps `appProperties`.
-- [ ] Popup reminders arrive on a phone.
-- [ ] The server restarts without needing a new sign-in.
+- [x] Sheets read and write work on the app-created spreadsheet with the `drive.file` scope alone.
+- [x] `events.insert` with a custom id works. A reused id returns 409.
+- [x] A deleted event can be restored through `events.update` with `status: "confirmed"`.
+- [x] Whether `files.copy` keeps `appProperties`.
+- [ ] Popup reminders arrive on a phone. (Needs the owner's phone: the event holds the reminders, see `DECISIONS.md`.)
+- [x] The server restarts without needing a new sign-in.
 
-These need a real Google account. Until they are run, the code is written to the spec's stated behaviour, and the items stay open in `DECISIONS.md`.
+These were run against a real Google account. Results, including that `files.copy` does not keep `appProperties`, are in `DECISIONS.md`.
 
 ## Tasks
 
@@ -43,8 +43,8 @@ These need a real Google account. Until they are run, the code is written to the
 
 ## Definition of done
 
-- First sign-in on a clean account produces the spreadsheet with all tabs and seeded categories; a second sign-in reuses it.
-- Restarting the server needs no new sign-in.
-- Deleting the state file shows the re-login banner and recovers after the next sign-in.
-- The working slice works end to end (mock mode in CI, live mode checked by the maintainer).
-- `[Verify]` results recorded. Tag `m1-done`.
+- [x] First sign-in on a clean account produces the spreadsheet with all tabs and seeded categories; a second sign-in reuses it.
+- [x] Restarting the server needs no new sign-in.
+- [x] Deleting the state file shows the re-login banner and recovers after the next sign-in.
+- [x] The working slice works end to end (mock mode in CI, and checked live against real Google).
+- [x] `[Verify]` results recorded. One item (phone reminders) needs the owner's phone. Tag `m1-done`.

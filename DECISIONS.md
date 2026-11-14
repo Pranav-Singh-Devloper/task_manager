@@ -39,6 +39,22 @@ Format: date · decision · why · how to undo it.
 - **A user who unticks Calendar or Drive on Google's permission screen** gets a plain message asking them to sign in again with both ticked, and nothing is saved.
 - **The live Google adapters are covered by tests of their pure parts** (retries, error mapping, A1 quoting, format requests, Drive queries) and by the mock adapters sharing the same interfaces. They have not yet been run against real Google. See the open items below.
 
-## Open items that need a real Google account
+## 2026-11-14 ([Verify] results from a real Google account)
 
-All `[Verify]` items in SPEC §5 and M1 are still open: Sheets under `drive.file` only, custom event id and 409 on reuse, restoring a deleted event with `update` + `status: "confirmed"`, whether `files.copy` keeps `appProperties`, popup reminders on a phone, restart without sign-in. The mock follows the behaviour the spec expects, so these must be confirmed against real Google before M1 is called done.
+Run against the owner's own Google account in live mode. Test data (a calendar event, a file and two Sheet rows) was removed afterwards.
+
+- **Sheets read and write work with `drive.file` alone.** The app created the spreadsheet, 21 tabs and the seed config, and read them back. The broader `spreadsheets` scope is not needed and is not requested.
+- **Text that looks like a formula stays text.** `=1+1`, `+SUM(1)`, `@x` and `-5` were written with RAW input and read back unchanged.
+- **Calendar event with a custom id works.** The id `mm` + 32 hex characters was accepted.
+- **Reusing an id gives 409**, both while the event exists and after it has been deleted.
+- **After a delete, `events.get` still returns the event with `status: cancelled`.** Restoring works with `events.update` and `status: confirmed`: the same event came back confirmed and no second event was made. This is the path `upsertEvent` uses.
+- **`files.copy` does NOT keep `appProperties`.** The copy came back with none. Setting `role: backup` explicitly on every copy (which `copyFile` does) is therefore required. With a backup present, the database search still found exactly one database.
+- **A restart needs no new sign-in.** A separate process with only the state file used the saved token. A full server restart left the browser signed in and `/api/meta` returned the real 11 categories and 155 fields.
+- **A lost state file recovers.** With the file removed, the dashboard showed "Please sign in with Google again." After signing in, the app found the same spreadsheet. There was still exactly one database in Drive.
+- **First sign-in and re-sign-in behave as designed.** First time: account chooser, then the "unverified app" screen, then a permission screen where Google lets the person tick Drive and Calendar separately (both start unticked), then back to the app. After the token was lost, the app asked for consent again and Google answered "already has some access".
+- **The working slice works in real Google.** One meeting made a Sheet row (dates stored as text so they sort), a Calendar event with reminders at 1 day and 1 hour, a link back to the app in the event, and a PDF in `Meetings Manager / Others / 2027 /` with its link in the row and in `_files`. Saving the same meeting again returned "existing" on the same row.
+
+### Still open
+
+- **Popup reminders arriving on a phone** cannot be checked from a computer. The event was confirmed to hold reminders at 1440 and 60 minutes. The owner should create a real meeting a couple of days ahead and see that the phone notifies.
+- **Publishing the app** (see the Google Cloud setup entry above).
