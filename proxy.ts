@@ -65,5 +65,7 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   // API routes are handled by Express, never by this guard.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest).*)'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|icon.svg|icons/|sw.js|offline.html|manifest.webmanifest).*)',
+  ],
 };
