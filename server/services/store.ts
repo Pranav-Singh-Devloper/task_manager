@@ -7,6 +7,7 @@ import type { Cell, FieldValue } from '../../shared/types';
 import { KeyedMutex } from '../lib/mutex';
 import { ActivityLog, type AuditEntry } from './audit';
 import { buildConfig, type CategoryConfig, type Config } from './config';
+import { orderOptionsByUse } from './lookups';
 import type { GoogleServices, TabInfo } from './google/types';
 import { parseRow, serializeRow, type RowRecord } from './rows';
 
@@ -69,7 +70,7 @@ export class SheetStore {
   private groupCounts = new Map<string, Map<string, number>>();
   private readonly clock: () => Date;
   private readonly ttlMs: number;
-  private readonly logger: Logger;
+  readonly logger: Logger;
 
   constructor(
     readonly google: GoogleServices,
@@ -135,6 +136,8 @@ export class SheetStore {
       },
       tabs,
     );
+
+    orderOptionsByUse(config, rowsOf(TAB.lookups));
 
     const categories = new Map<string, CategoryData>();
     const adopt: { cat: CategoryConfig; row: number }[] = [];

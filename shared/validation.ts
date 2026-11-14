@@ -36,9 +36,9 @@ function canonicalOption(
   const text = value.trim();
   if (text.length > 200)
     return { error: `${f.label} is too long. Please keep it under 200 characters.` };
-  if (f.allow_new_options || f.options.length === 0) return text;
   const match = f.options.find((o) => o.toLowerCase() === text.toLowerCase());
   if (match) return match;
+  if (f.allow_new_options || f.options.length === 0) return text;
   if (existing !== undefined && existing === text) return text; // an older value that is no longer on the list
   return { error: `${f.label}: "${text}" is not one of the choices.` };
 }
