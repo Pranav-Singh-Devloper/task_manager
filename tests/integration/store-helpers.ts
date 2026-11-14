@@ -51,7 +51,7 @@ export async function fixture(options: MockOptions = { seed: 'demo' }): Promise<
   const { spreadsheetId } = await bootstrap(mock.services);
   const counted = countSheetsCalls(mock.services);
   const clock = {
-    now: new Date('2026-11-14T06:00:00Z'),
+    now: new Date(),
     advance(ms: number) {
       this.now = new Date(this.now.getTime() + ms);
     },
