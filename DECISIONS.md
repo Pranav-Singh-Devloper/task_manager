@@ -26,6 +26,19 @@ Format: date · decision · why · how to undo it.
 - **`GOOGLE_MODE` stays `mock` in `.env`** until the live adapters exist (M1).
 - **The app is in Testing mode, not yet published.** Why: Google requires a homepage URL and a privacy policy URL before an external app can be published, and there is no production domain yet. While in Testing, the owner's refresh token expires after 7 days (SPEC §5.1). Only the owner's Google account is listed as a test user. To finish: deploy, add the production redirect URI to the client, fill in Branding with the homepage and privacy policy links, then click Publish app on the Audience page.
 
+## 2026-11-14 (M1)
+
+- **`proxy.ts` instead of `middleware.ts`.** Next 16 renamed the route guard file. It does what SPEC §5.3 describes: sends signed-out visitors to /login and keeps the 30-day session sliding. Undo: rename back on an older Next.
+- **Sign-in rate limit covers only starting a sign-in and the callback** (30 a minute). The shell calls `/api/auth/me` on every page load, and limiting it tightly locked people out during testing. Undo: widen or narrow the two limits in `routes/auth.ts`.
+- **Mock sign-in is `GET /api/auth/google?as=email`.** Why: the allow-list, wrong-account and not-set-up paths can be tested without Google. It exists only when `GOOGLE_MODE=mock`.
+- **Batched Sheets calls** (`addTabs`, `writeBlocks`, `formatTabs`) are in the interface. Creating the whole database takes 4 calls instead of about 65, which settles the quota worry noted earlier.
+- **Calendar payload builder, insert-or-restore, upload allow-list and safe names were written in M1**, not M5, because the working slice needs them. M5 adds category colours, the retry job and the sync chips.
+- **Config row parsing and "skip and report" were written in M1** for `/api/meta`. M2 adds the deeper checks (formulas, duplicate keys across tabs) and the Zod generation.
+- **Uploads use the Google client's streamed multipart upload**, not a resumable session. Why: it streams without holding the file in memory and the limit is 50 MB. Undo: switch `LiveDrive.uploadFile` to a resumable upload if large files fail.
+- **`/spike` is a temporary page** for the working slice. It is not in the menu and is removed when the real meeting form lands in M3.
+- **A user who unticks Calendar or Drive on Google's permission screen** gets a plain message asking them to sign in again with both ticked, and nothing is saved.
+- **The live Google adapters are covered by tests of their pure parts** (retries, error mapping, A1 quoting, format requests, Drive queries) and by the mock adapters sharing the same interfaces. They have not yet been run against real Google. See the open items below.
+
 ## Open items that need a real Google account
 
 All `[Verify]` items in SPEC §5 and M1 are still open: Sheets under `drive.file` only, custom event id and 409 on reuse, restoring a deleted event with `update` + `status: "confirmed"`, whether `files.copy` keeps `appProperties`, popup reminders on a phone, restart without sign-in. The mock follows the behaviour the spec expects, so these must be confirmed against real Google before M1 is called done.

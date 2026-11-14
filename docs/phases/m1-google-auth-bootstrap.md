@@ -30,16 +30,16 @@ These need a real Google account. Until they are run, the code is written to the
 
 ## Tasks
 
-- [ ] `server/lib/crypto.ts` (AES-256-GCM) with tests
-- [ ] `server/services/state.ts` atomic state file with tests
-- [ ] `server/services/google/auth.ts` (PKCE, state/CSRF, token refresh, `invalid_grant` handling)
-- [ ] Auth routes and session cookie, middleware, login page
-- [ ] Live `sheets.ts`, `drive.ts`, `calendar.ts` adapters
-- [ ] Deterministic calendar event id derivation with tests (34 chars, base32hex)
-- [ ] `bootstrap.ts` with discovery, creation, seeding, migrations; runs against mock in tests
-- [ ] `/api/meta`
-- [ ] Spike form and route for the working slice
-- [ ] README section for Google Cloud setup
+- [x] `server/lib/crypto.ts` (AES-256-GCM) with tests
+- [x] `server/services/state.ts` atomic state file with tests
+- [x] `server/services/google/auth.ts` (PKCE, state/CSRF, token refresh, `invalid_grant` handling)
+- [x] Auth routes and session cookie, middleware, login page
+- [x] Live `sheets.ts`, `drive.ts`, `calendar.ts` adapters
+- [x] Deterministic calendar event id derivation with tests (34 chars, base32hex)
+- [x] `bootstrap.ts` with discovery, creation, seeding, migrations; runs against mock in tests
+- [x] `/api/meta`
+- [x] Spike form and route for the working slice
+- [x] README section for Google Cloud setup (screenshots are added in M7)
 
 ## Definition of done
 
