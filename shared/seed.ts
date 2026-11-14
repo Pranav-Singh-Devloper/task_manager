@@ -157,7 +157,7 @@ function makeField(slug: string, order: number, createdAt: string, spec: FieldSp
 }
 
 /** Core fields every category has (§6.5). Orders leave room for category fields between them. */
-function coreFields(slug: string, hasTemplate: boolean, createdAt: string): FieldDef[] {
+export function coreFields(slug: string, hasTemplate: boolean, createdAt: string): FieldDef[] {
   const core: [number, FieldSpec][] = [
     [
       10,

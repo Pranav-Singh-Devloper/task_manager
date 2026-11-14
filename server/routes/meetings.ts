@@ -5,6 +5,7 @@ import { MEETING_STATUSES } from '../../shared/types';
 import { ValidationFailed } from '../lib/errors';
 import type { DataLayer } from '../services/data';
 import type { Actor } from '../services/meetings';
+import { createCategory } from '../services/categories';
 import { updateSettings } from '../services/settings';
 
 const unreadable = () =>
@@ -38,6 +39,21 @@ const rescheduleBody = z.object({
   confirm_completed: z.boolean().optional(),
 });
 const statusBody = z.object({ status: z.enum(MEETING_STATUSES), rev });
+const completeBody = z.object({
+  notes: z.string().max(25000).optional(),
+  next: z
+    .object({
+      id: z.string(),
+      date: z.string(),
+      start_time: z.string(),
+      end_time: z.string().nullish(),
+    })
+    .optional(),
+  awaiting_next: z.boolean().optional(),
+  allow_second_next: z.boolean().optional(),
+  rev,
+});
+const categoryBody = z.object({ name: z.string(), color: z.string() });
 
 const actorOf = (req: Request): Actor => ({
   email: ((req.res?.locals.session ?? {}) as VerifiedSession).email,
@@ -65,7 +81,8 @@ export function meetingsRouter(data: DataLayer): Router {
 
   router.get('/meetings/:id', async (req, res) => {
     const { meetings } = await data.use();
-    res.json({ meeting: await meetings.get(String(req.params.id)) });
+    const id = String(req.params.id);
+    res.json({ meeting: await meetings.get(id), ...(await meetings.neighbors(id)) });
   });
 
   router.get('/meetings/:id/history', async (req, res) => {
@@ -121,6 +138,29 @@ export function meetingsRouter(data: DataLayer): Router {
     const { meetings } = await data.use();
     const r = await meetings.restore(String(req.params.id), actorOf(req));
     res.json({ meeting: r.meeting, undo_token: r.undoToken });
+  });
+
+  router.post('/meetings/:id/complete', async (req, res) => {
+    const body = parse(completeBody, req.body);
+    const { meetings } = await data.use();
+    const r = await meetings.complete(
+      String(req.params.id),
+      {
+        notes: body.notes,
+        next: body.next,
+        awaitingNext: body.awaiting_next,
+        allowSecondNext: body.allow_second_next,
+        rev: body.rev,
+      },
+      actorOf(req),
+    );
+    res.json({ meeting: r.meeting, next: r.next, existing: r.existing, undo_token: r.undoToken });
+  });
+
+  router.post('/categories', async (req, res) => {
+    const body = parse(categoryBody, req.body);
+    const { store } = await data.use();
+    res.status(201).json({ category: await createCategory(store, body, actorOf(req)) });
   });
 
   router.post('/undo/:token', async (req, res) => {

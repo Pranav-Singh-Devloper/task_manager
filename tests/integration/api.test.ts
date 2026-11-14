@@ -348,3 +348,120 @@ describe('refresh and meta', () => {
     ]);
   });
 });
+
+describe('done flow and categories over HTTP', () => {
+  async function bootCcie() {
+    const { cookie } = await boot();
+    const id = newId();
+    const res = await s.get(
+      '/api/meetings',
+      json(cookie, {
+        id,
+        category: 'ccie',
+        values: {
+          date: '2026-12-01',
+          start_time: '10:30',
+          case_id: 'C-9',
+          project_name: 'NH-9',
+          state: 'Kerala',
+        },
+      }),
+    );
+    return { cookie, id, meeting: (await res.json()).meeting };
+  }
+
+  it('marks a meeting done and makes the next one, linked, in one request', async () => {
+    const { cookie, id } = await bootCcie();
+    const next = { id: newId(), date: '2026-12-08', start_time: '11:00' };
+    const res = await s.get(
+      `/api/meetings/${id}/complete`,
+      json(cookie, { notes: 'All agreed', next, rev: 1 }),
+    );
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.meeting.values.meeting_status).toBe('Completed');
+    expect(body.next).toMatchObject({ id: next.id, previous_id: id });
+    expect(body.next.values).toMatchObject({
+      case_id: 'C-9',
+      date: '2026-12-08',
+      start_time: '11:00',
+    });
+    expect(body.undo_token).toBeTruthy();
+
+    const detail = await (await s.get(`/api/meetings/${id}`, withSession(cookie))).json();
+    expect(detail.next).toMatchObject({ id: next.id, date: '2026-12-08' });
+    const nextDetail = await (await s.get(`/api/meetings/${next.id}`, withSession(cookie))).json();
+    expect(nextDetail.previous).toMatchObject({ id });
+  });
+
+  it('a second next meeting is a 409 that names the existing one, and can be confirmed', async () => {
+    const { cookie, id } = await bootCcie();
+    const first = { id: newId(), date: '2026-12-08', start_time: '11:00' };
+    await s.get(`/api/meetings/${id}/complete`, json(cookie, { next: first, rev: 1 }));
+    const second = { id: newId(), date: '2026-12-15', start_time: '11:00' };
+    const res = await s.get(`/api/meetings/${id}/complete`, json(cookie, { next: second, rev: 2 }));
+    expect(res.status).toBe(409);
+    const err = (await res.json()).error;
+    expect(err).toMatchObject({
+      code: 'next_exists',
+      details: { existing_id: first.id, existing_date: '2026-12-08' },
+    });
+    const ok = await s.get(
+      `/api/meetings/${id}/complete`,
+      json(cookie, { next: second, rev: 2, allow_second_next: true }),
+    );
+    expect(ok.status).toBe(200);
+  });
+
+  it('"not decided yet" is remembered, and one Undo reverses the whole thing', async () => {
+    const { cookie, id } = await bootCcie();
+    const res = await s.get(
+      `/api/meetings/${id}/complete`,
+      json(cookie, { awaiting_next: true, rev: 1 }),
+    );
+    const body = await res.json();
+    expect(body.meeting.awaiting_next).toBe(true);
+    const undone = await (
+      await s.get(`/api/undo/${body.undo_token}`, {
+        method: 'POST',
+        ...withSession(cookie, MUTATE),
+      })
+    ).json();
+    expect(undone.meeting.values.meeting_status).toBe('Scheduled');
+    expect(undone.meeting.awaiting_next).toBe(false);
+  });
+
+  it('adds a new category and it is ready to use', async () => {
+    const { cookie } = await boot();
+    const res = await s.get(
+      '/api/categories',
+      json(cookie, { name: 'Site Visits', color: '#6D28D9' }),
+    );
+    expect(res.status).toBe(201);
+    const { category } = await res.json();
+    expect(category.slug).toBe('site_visits');
+    const meta = await (await s.get('/api/meta', withSession(cookie))).json();
+    expect(meta.categories.map((c: { slug: string }) => c.slug)).toContain('site_visits');
+    expect(meta.problems).toEqual([]);
+
+    const made = await s.get(
+      '/api/meetings',
+      json(cookie, {
+        id: newId(),
+        category: 'site_visits',
+        values: { date: '2026-12-02', start_time: '09:00', topic: 'Bridge' },
+      }),
+    );
+    expect(made.status).toBe(201);
+  });
+
+  it('says plainly when a category cannot be added', async () => {
+    const { cookie } = await boot();
+    const dup = await s.get('/api/categories', json(cookie, { name: 'CCIE', color: '#6D28D9' }));
+    expect(dup.status).toBe(400);
+    expect((await dup.json()).error.issues[0].message).toBe(
+      'A category called "CCIE" already exists.',
+    );
+    expect((await s.get('/api/categories', json(cookie, { name: 'X' }))).status).toBe(400);
+  });
+});

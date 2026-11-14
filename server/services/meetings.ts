@@ -14,6 +14,7 @@ import {
 import type { AuditAction, ChangeSource, RescheduleEntry } from './audit';
 import type { CategoryConfig } from './config';
 import { titleOf, toMeeting } from './meetingView';
+import { learnOptions } from './lookups';
 import { parseRow, serializeRow, type RowRecord } from './rows';
 import type { Snapshot, SheetStore } from './store';
 import { UndoService, type UndoRecord, type UndoStep } from './undo';
@@ -338,7 +339,7 @@ export class MeetingService {
     const existingFirst = already(first);
     if (existingFirst) return { meeting: existingFirst, undoToken: null, existing: true };
 
-    return this.store.mutex.run(this.store.tabKey(cfg.tab.gid), async () => {
+    const created = await this.store.mutex.run(this.store.tabKey(cfg.tab.gid), async () => {
       const snap = await this.store.snapshot();
       const again = already(snap);
       if (again) return { meeting: again, undoToken: null, existing: true };
@@ -441,6 +442,21 @@ export class MeetingService {
         existing: false,
       };
     });
+    if (!created.existing) await this.learn(input.category, created.meeting.values);
+    return created;
+  }
+
+  /** Teaches the dropdowns the values just used. Best effort: the meeting is already saved. */
+  private async learn(
+    slug: string,
+    values: Record<string, FieldValue>,
+    onlyKeys?: string[],
+  ): Promise<void> {
+    try {
+      await learnOptions(this.store, slug, values, onlyKeys);
+    } catch (err) {
+      this.store.logger.warn({ err }, 'could not update the dropdown lists');
+    }
   }
 
   // ---------- update, reschedule, status ----------
@@ -453,7 +469,8 @@ export class MeetingService {
     actor: Actor,
     options: { reason?: string; confirmCompleted?: boolean; label?: string } = {},
   ): Promise<MutationResult> {
-    return this.mutate(id, rev, actor, (c) => {
+    let changedKeys: string[] = [];
+    const result = await this.mutate(id, rev, actor, (c) => {
       if (c.record.system.deleted_at)
         throw new ConflictError('This meeting is in the Trash. Please restore it first.');
       const editable = new Set(
@@ -519,6 +536,7 @@ export class MeetingService {
       const titleKeys = [...c.cfg.category.title_template.matchAll(/\{(\w+)\}/g)].map(
         (m) => m[1] as string,
       );
+      changedKeys = Object.keys(changes);
       const touchesCalendar = Object.keys(changes).some(
         (k) => CALENDAR_KEYS.has(k) || titleKeys.includes(k),
       );
@@ -538,6 +556,10 @@ export class MeetingService {
         },
       };
     });
+    if (changedKeys.length > 0) {
+      await this.learn(result.meeting.category_slug, result.meeting.values, changedKeys);
+    }
+    return result;
   }
 
   /** New date and time, keeping the length unless an end time is given. */
