@@ -82,3 +82,13 @@ export type SettingKey =
 export type Settings = Record<SettingKey, string>;
 
 export type UserRole = 'owner' | 'admin';
+
+/** A field value as the app holds it: dates as YYYY-MM-DD, times as HH:mm, multi-selects as a list. */
+export type FieldValue = string | number | boolean | string[] | null;
+
+export interface ValidationIssue {
+  /** The field key, or "form" for a problem with the form as a whole. */
+  field: string;
+  /** Plain language, safe to show next to the field. */
+  message: string;
+}
