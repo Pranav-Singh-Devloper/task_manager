@@ -36,6 +36,17 @@ test.describe('navigation', () => {
     expect(box?.width).toBe(240);
   });
 
+  test('the New meeting button has one plus sign and fits on one line', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop');
+    await page.goto('/');
+    const button = page
+      .getByRole('navigation', { name: 'Main menu' })
+      .getByRole('link', { name: '+ New meeting' });
+    expect((await button.innerText()).trim()).toBe('+ New meeting');
+    const box = await button.boundingBox();
+    expect(box?.height).toBeLessThan(70);
+  });
+
   test('only built pages are in the sidebar', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');

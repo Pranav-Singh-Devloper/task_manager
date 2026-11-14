@@ -4,7 +4,6 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PlusIcon } from '../icons';
 import { buttonClasses } from '../ui/button';
 import { NAV_ITEMS, isActive } from './nav-items';
 
@@ -16,7 +15,6 @@ export function SidebarContent() {
   return (
     <nav aria-label={t('label')} className="flex flex-col gap-4">
       <Link href="/meetings/new" className={buttonClasses('primary', 'lg', 'w-full')}>
-        <PlusIcon />
         {t('newMeeting')}
       </Link>
       <ul className="flex flex-col gap-2">

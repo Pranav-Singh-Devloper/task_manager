@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { CloseIcon, MenuIcon, PlusIcon } from '../icons';
+import { CloseIcon, MenuIcon } from '../icons';
 import { Button, buttonClasses } from '../ui/button';
 import { NAV_ITEMS, isActive } from './nav-items';
 import { SidebarContent } from './sidebar-content';
@@ -92,7 +92,6 @@ export function AppShell({ userName, children }: { userName: string; children: R
           'fixed bottom-4 right-4 z-30 rounded-full shadow-lg md:hidden',
         )}
       >
-        <PlusIcon />
         {t('newMeeting')}
       </Link>
     </div>
