@@ -1,4 +1,5 @@
 import express, { type ErrorRequestHandler, type Express } from 'express';
+import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
 import type { Env } from './env';
@@ -9,6 +10,7 @@ import { calendarRouter, filesRouter } from './routes/files';
 import { healthRouter } from './routes/health';
 import { meetingsRouter } from './routes/meetings';
 import { metaRouter } from './routes/meta';
+import { recoverRouter } from './routes/recover';
 import { AppError } from './lib/errors';
 import { DataLayer } from './services/data';
 import { isGoogleApiError } from './services/google/errors';
@@ -37,6 +39,7 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
   api.use('/auth', authRouter({ env, google, auth, logger }));
   // Everything below needs a signed-in user, and mutating requests need the CSRF header.
   api.use(requireSession(env));
+  api.use(recoverRouter(google));
   const data = new DataLayer(google, {
     logger,
     appUrl: env.appUrl,
@@ -45,6 +48,24 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
   app.locals.data = data;
   api.use(metaRouter(data));
   api.use(meetingsRouter(data));
+  // Uploads are the heavy request, so they get their own limit (§10).
+  api.post(
+    '/files',
+    rateLimit({
+      windowMs: 10 * 60 * 1000,
+      limit: 120,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (_req, res) => {
+        res.status(429).json({
+          error: {
+            code: 'rate_limited',
+            message: 'That is a lot of files at once. Please wait a few minutes and try again.',
+          },
+        });
+      },
+    }),
+  );
   api.use(filesRouter(data));
   api.use(adminRouter(data));
   api.use(calendarRouter(data));

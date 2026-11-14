@@ -8,6 +8,27 @@ import {
   verifySession,
 } from '@/shared/session';
 
+/**
+ * The page's content security policy (§10). Scripts run only with this request's nonce, never with `unsafe-inline`.
+ * Styles allow inline because the calendar and the grid add their own style tags. React's development mode needs `eval`.
+ */
+export function contentSecurityPolicy(nonce: string, dev: boolean): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    `connect-src 'self'${dev ? ' ws: wss:' : ''}`,
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
 /** Sends signed-out visitors to /login and keeps the 30-day session sliding (Next's "middleware", renamed proxy in Next 16). */
 export async function proxy(req: NextRequest) {
   const secret = process.env.SESSION_SECRET || DEV_SESSION_SECRET;
@@ -22,7 +43,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url));
   }
 
-  const res = NextResponse.next();
+  // A new nonce for every request. Next reads it from the request's CSP header and puts it on its own scripts.
+  const nonce = btoa(crypto.randomUUID());
+  const csp = contentSecurityPolicy(nonce, process.env.NODE_ENV !== 'production');
+  const headers = new Headers(req.headers);
+  headers.set('x-nonce', nonce);
+  headers.set('content-security-policy', csp);
+  const res = NextResponse.next({ request: { headers } });
+  res.headers.set('content-security-policy', csp);
   if (session && needsRefresh(session)) {
     res.cookies.set(SESSION_COOKIE, await signSession(session, secret), {
       httpOnly: true,
