@@ -110,7 +110,13 @@ export const AUDIT_HEADERS = [
   'source',
 ] as const;
 
-export const LOOKUP_HEADERS = ['field_key', 'category_slug', 'value', 'count', 'last_used'] as const;
+export const LOOKUP_HEADERS = [
+  'field_key',
+  'category_slug',
+  'value',
+  'count',
+  'last_used',
+] as const;
 
 export const SYSTEM_TAB_HEADERS = ['key', 'value'] as const;
 
@@ -215,5 +221,18 @@ export function categoryTabHeaders(fields: FieldDef[]): string[] {
 
 /** Characters Google Sheets does not allow in a tab title. */
 export function sheetTitleFor(name: string): string {
-  return name.replace(/[:\\/?*[\]]/g, '_').trim().slice(0, 100) || 'Untitled';
+  return (
+    name
+      .replace(/[:\\/?*[\]]/g, '_')
+      .trim()
+      .slice(0, 100) || 'Untitled'
+  );
+}
+
+/** Turns an object into a row in header order. Missing values become empty cells. */
+export function rowFromObject(
+  headers: readonly string[],
+  obj: Record<string, Cell | undefined>,
+): Cell[] {
+  return headers.map((h) => obj[h] ?? '');
 }
