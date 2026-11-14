@@ -48,6 +48,14 @@ Checklist:
 - [ ] The Google app **published** (see step 7 above), using the deployed home page and a privacy policy link.
 - [ ] The first sign-in done by the owner with the maintainer present. That creates the database.
 
+### Free hosting on a Google Cloud VM
+
+Google Cloud's always-free tier includes one `e2-micro` VM (in us-west1, us-central1 or us-east1) with a 30 GB standard disk. It is always on and keeps its disk, so it suits this app. Steps:
+
+1. In the Compute Engine page, create a VM: machine type `e2-micro`, region one of the three above, boot disk Debian 12 with 30 GB **standard** persistent disk, and tick **Allow HTTP traffic** and **Allow HTTPS traffic**. Reserve its external IP (VPC network, IP addresses) so it never changes.
+2. Click **SSH** on the VM and run the one-line command at the top of [deploy/gcp/setup.sh](deploy/gcp/setup.sh). It adds swap, installs Docker, builds the app, and gets a free HTTPS address of the form `1-2-3-4.sslip.io` with an automatic certificate.
+3. Add the address it prints to the OAuth client's authorised redirect URIs, and to the consent screen's home page link.
+
 ## Data sensitivity
 
 The data can include court cases and government project information. Whoever uses this should confirm that keeping it in a personal Google account is acceptable under their department's policy. This is a personal-account tool that uses whichever Google account is chosen at sign-in. NHAI's official email may not be a Google account, so the owner should sign in with the Google account he uses for his phone calendar.
