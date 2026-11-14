@@ -3,7 +3,8 @@ import { z } from 'zod';
 import type { VerifiedSession } from '../../shared/session';
 import { MEETING_STATUSES } from '../../shared/types';
 import { ValidationFailed } from '../lib/errors';
-import type { DataLayer } from '../services/data';
+import type { Meeting } from '../../shared/meeting';
+import type { DataContext, DataLayer } from '../services/data';
 import type { Actor } from '../services/meetings';
 import { createCategory } from '../services/categories';
 import { FILTER_OPS } from '../../shared/filters';
@@ -25,13 +26,15 @@ function parse<T extends z.ZodTypeAny>(schema: T, input: unknown): z.infer<T> {
 }
 
 const rev = z.number().int().min(0);
+const fileIds = z.array(z.string().max(40)).max(50).optional();
 const createBody = z.object({
   id: z.string(),
   category: z.string(),
   values: z.record(z.string(), z.unknown()).default({}),
   previous_id: z.string().optional(),
+  file_ids: fileIds,
 });
-const patchBody = z.object({ rev, values: z.record(z.string(), z.unknown()) });
+const patchBody = z.object({ rev, values: z.record(z.string(), z.unknown()), file_ids: fileIds });
 const rescheduleBody = z.object({
   date: z.string(),
   start_time: z.string(),
@@ -104,6 +107,12 @@ const listQuery = z.object({
   cursor: z.coerce.number().int().min(0).default(0),
 });
 
+/** Waits (briefly) for the calendar to follow a change, then returns the meeting as it is now, including its calendar state. */
+async function settled(ctx: DataContext, id: string): Promise<Meeting> {
+  await ctx.calendar.settle();
+  return ctx.meetings.get(id);
+}
+
 const actorOf = (req: Request): Actor => ({
   email: ((req.res?.locals.session ?? {}) as VerifiedSession).email,
   source: 'app',
@@ -160,46 +169,54 @@ export function meetingsRouter(data: DataLayer): Router {
 
   router.post('/meetings', async (req, res) => {
     const body = parse(createBody, req.body);
-    const { meetings } = await data.use();
-    const r = await meetings.create(
+    const ctx = await data.use();
+    const r = await ctx.meetings.create(
       { id: body.id, category: body.category, values: body.values, previousId: body.previous_id },
       actorOf(req),
     );
-    res
-      .status(r.existing ? 200 : 201)
-      .json({ meeting: r.meeting, existing: r.existing, undo_token: r.undoToken });
+    await ctx.files.attach(body.id, body.file_ids ?? [], actorOf(req));
+    res.status(r.existing ? 200 : 201).json({
+      meeting: await settled(ctx, body.id),
+      existing: r.existing,
+      undo_token: r.undoToken,
+    });
   });
 
   router.patch('/meetings/:id', async (req, res) => {
     const body = parse(patchBody, req.body);
-    const { meetings } = await data.use();
-    const r = await meetings.update(String(req.params.id), body.values, body.rev, actorOf(req));
-    res.json({ meeting: r.meeting, undo_token: r.undoToken });
+    const ctx = await data.use();
+    const id = String(req.params.id);
+    const r = await ctx.meetings.update(id, body.values, body.rev, actorOf(req));
+    await ctx.files.attach(id, body.file_ids ?? [], actorOf(req));
+    res.json({ meeting: await settled(ctx, id), undo_token: r.undoToken });
   });
 
   router.post('/meetings/:id/reschedule', async (req, res) => {
     const body = parse(rescheduleBody, req.body);
-    const { meetings } = await data.use();
-    const r = await meetings.reschedule(
-      String(req.params.id),
+    const ctx = await data.use();
+    const id = String(req.params.id);
+    const r = await ctx.meetings.reschedule(
+      id,
       { ...body, confirmCompleted: body.confirm_completed },
       actorOf(req),
     );
-    res.json({ meeting: r.meeting, undo_token: r.undoToken });
+    res.json({ meeting: await settled(ctx, id), undo_token: r.undoToken });
   });
 
   router.post('/meetings/:id/status', async (req, res) => {
     const body = parse(statusBody, req.body);
-    const { meetings } = await data.use();
-    const r = await meetings.setStatus(String(req.params.id), body.status, body.rev, actorOf(req));
-    res.json({ meeting: r.meeting, undo_token: r.undoToken });
+    const ctx = await data.use();
+    const id = String(req.params.id);
+    const r = await ctx.meetings.setStatus(id, body.status, body.rev, actorOf(req));
+    res.json({ meeting: await settled(ctx, id), undo_token: r.undoToken });
   });
 
   router.delete('/meetings/:id', async (req, res) => {
     const revision = parse(rev, Number(req.query.rev));
-    const { meetings } = await data.use();
-    const r = await meetings.remove(String(req.params.id), revision, actorOf(req));
-    res.json({ meeting: r.meeting, undo_token: r.undoToken });
+    const ctx = await data.use();
+    const id = String(req.params.id);
+    const r = await ctx.meetings.remove(id, revision, actorOf(req));
+    res.json({ meeting: await settled(ctx, id), undo_token: r.undoToken });
   });
 
   router.post('/meetings/:id/dismiss-waiting', async (req, res) => {
@@ -210,16 +227,18 @@ export function meetingsRouter(data: DataLayer): Router {
   });
 
   router.post('/meetings/:id/restore', async (req, res) => {
-    const { meetings } = await data.use();
-    const r = await meetings.restore(String(req.params.id), actorOf(req));
-    res.json({ meeting: r.meeting, undo_token: r.undoToken });
+    const ctx = await data.use();
+    const id = String(req.params.id);
+    const r = await ctx.meetings.restore(id, actorOf(req));
+    res.json({ meeting: await settled(ctx, id), undo_token: r.undoToken });
   });
 
   router.post('/meetings/:id/complete', async (req, res) => {
     const body = parse(completeBody, req.body);
-    const { meetings } = await data.use();
-    const r = await meetings.complete(
-      String(req.params.id),
+    const ctx = await data.use();
+    const id = String(req.params.id);
+    const r = await ctx.meetings.complete(
+      id,
       {
         notes: body.notes,
         next: body.next,
@@ -229,7 +248,13 @@ export function meetingsRouter(data: DataLayer): Router {
       },
       actorOf(req),
     );
-    res.json({ meeting: r.meeting, next: r.next, existing: r.existing, undo_token: r.undoToken });
+    await ctx.calendar.settle();
+    res.json({
+      meeting: await ctx.meetings.get(id),
+      next: r.next ? await ctx.meetings.get(r.next.id) : null,
+      existing: r.existing,
+      undo_token: r.undoToken,
+    });
   });
 
   router.post('/categories', async (req, res) => {
@@ -239,9 +264,9 @@ export function meetingsRouter(data: DataLayer): Router {
   });
 
   router.post('/undo/:token', async (req, res) => {
-    const { meetings } = await data.use();
-    const r = await meetings.undoChange(String(req.params.token), actorOf(req));
-    res.json({ meeting: r.meeting, label: r.label });
+    const ctx = await data.use();
+    const r = await ctx.meetings.undoChange(String(req.params.token), actorOf(req));
+    res.json({ meeting: await settled(ctx, r.meeting.id), label: r.label });
   });
 
   router.get('/settings', async (_req, res) => {

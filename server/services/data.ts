@@ -1,6 +1,8 @@
 import type { Logger } from 'pino';
 import { NotSetUpError } from '../lib/errors';
 import type { GoogleServices } from './google/types';
+import { CalendarService } from './calendarService';
+import { FileService } from './files';
 import { MeetingService } from './meetings';
 import { SheetStore } from './store';
 import { UndoService } from './undo';
@@ -9,11 +11,17 @@ export interface DataLayerOptions {
   logger: Logger;
   clock?: () => Date;
   ttlMs?: number;
+  /** The address people open the app at, put in calendar events as a link back. */
+  appUrl?: string;
+  /** The upload cap when the max_upload_mb setting is blank. */
+  maxUploadMb?: number;
 }
 
 export interface DataContext {
   store: SheetStore;
   meetings: MeetingService;
+  calendar: CalendarService;
+  files: FileService;
 }
 
 /**
@@ -37,7 +45,20 @@ export class DataLayer {
     if (!id) throw new NotSetUpError();
     if (this.current?.id !== id) {
       const store = new SheetStore(this.google, id, this.options);
-      this.current = { id, ctx: { store, meetings: new MeetingService(store, this.undo) } };
+      const meetings = new MeetingService(store, this.undo);
+      const calendar = new CalendarService(store, meetings, {
+        appUrl: this.options.appUrl ?? 'http://localhost:3000',
+        logger: this.options.logger,
+      });
+      meetings.onChanged = (changed) => calendar.queue(changed);
+      const files = new FileService(store, meetings, {
+        maxBytes: () => {
+          const fromSettings = Number(store.currentSettings()?.max_upload_mb);
+          const mb = fromSettings > 0 ? fromSettings : (this.options.maxUploadMb ?? 50);
+          return Math.floor(mb * 1024 * 1024);
+        },
+      });
+      this.current = { id, ctx: { store, meetings, calendar, files } };
     }
     return this.current.ctx;
   }
