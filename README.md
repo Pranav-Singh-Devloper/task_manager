@@ -1,6 +1,8 @@
 # Meetings & Tasks Manager
 
-A simple web app for keeping meetings, reminders, documents and next dates in one place. Data lives in a Google Sheet in the owner's own Google account. See [SPEC.md](SPEC.md) for the full product and technical spec and [docs/phases](docs/phases/README.md) for the build plan.
+A simple web app for keeping meetings, reminders, documents and next dates in one place. Data lives in a Google Sheet in the owner's own Google account, files go to their Google Drive, and meetings appear on their Google Calendar with reminders on the phone. See [SPEC.md](SPEC.md) for the full product and technical spec and [docs/phases](docs/phases/README.md) for how it was built.
+
+**Who it is for:** one busy person who attends many meetings and wants to plan, get reminded, attend, and record the next date without learning software. Everything is built around large text, clear words and few buttons.
 
 ## Run it on your computer (no Google account needed)
 
@@ -9,11 +11,14 @@ npm install
 npm run dev          # http://localhost:3000, runs on built-in demo data (GOOGLE_MODE=mock)
 ```
 
-Other scripts: `npm test` (unit and integration), `npm run test:e2e` (browser tests on a phone and a desktop screen), `npm run lint`, `npm run typecheck`, `npm run build`, `npm start`.
+| Command | What it does |
+|---|---|
+| `npm test` | Unit and integration tests (about 480) |
+| `npm run test:e2e` | Browser tests on a phone-sized and a desktop-sized screen, with accessibility checks |
+| `npm run lint` / `npm run typecheck` | Style and strict type checks |
+| `npm run build` / `npm start` | Production build and run |
 
-To rehearse failures, start with for example `MOCK_FAIL=calendar npm run dev`.
-
-Copy `.env.example` to `.env` to change settings. In mock mode, `/api/auth/google?as=someone@example.com` signs in as that address, which is how the "wrong account" and "not set up yet" messages are tried out.
+To rehearse failures, start with for example `MOCK_FAIL=calendar npm run dev`. Copy `.env.example` to `.env` to change settings. In mock mode, `/api/auth/google?as=someone@example.com` signs in as that address, which is how the "wrong account" and "not set up yet" messages are tried out.
 
 ## Connect it to real Google
 
@@ -27,6 +32,29 @@ Copy `.env.example` to `.env` to change settings. In mock mode, `/api/auth/googl
 
 The first sign-in creates the spreadsheet "Meetings Manager — Database" and a "Meetings Manager" folder in the owner's Drive. If the saved sign-in is ever lost, signing in again finds the same spreadsheet. Nothing is lost, because all data lives in Google.
 
-## Status
+## Deploying it
 
-Built phase by phase. See the table in [docs/phases/README.md](docs/phases/README.md).
+The app is **one Node process** (Express with Next.js inside) that must stay running. It keeps the owner's encrypted sign-in in a small file, runs two background jobs (retry the calendar every 5 minutes, clear unsaved uploads hourly), and holds undo links and a short-lived cache in memory. So it needs **an always-on host with a persistent disk**, not a serverless platform where each request may run on a different, short-lived machine.
+
+Checklist:
+
+- [ ] A host that runs a long-lived Node 20+ process: for example Render, Railway or Fly.io (with a persistent disk), or a small server of your own. **Exactly one instance.**
+- [ ] A persistent volume mounted at `DATA_DIR` (it holds `state.json`). If it is ever lost, the owner signs in once more and the same spreadsheet is found again.
+- [ ] An HTTPS address, set as `APP_URL`, and the same address plus `/api/auth/google/callback` registered as the redirect URI in Google.
+- [ ] All variables from [.env.example](.env.example) set, with `GOOGLE_MODE=live`. Never commit `.env`.
+- [ ] Build with `npm ci && npm run build`, start with `npm start`.
+- [ ] An outside uptime checker (for example UptimeRobot) watching `GET /api/health`, set to alert the maintainer.
+- [ ] The Google app **published** (see step 7 above), using the deployed home page and a privacy policy link.
+- [ ] The first sign-in done by the owner with the maintainer present. That creates the database.
+
+## Data sensitivity
+
+The data can include court cases and government project information. Whoever uses this should confirm that keeping it in a personal Google account is acceptable under their department's policy. This is a personal-account tool that uses whichever Google account is chosen at sign-in. NHAI's official email may not be a Google account, so the owner should sign in with the Google account he uses for his phone calendar.
+
+## Security in short
+
+Only the emails in `ALLOWED_EMAILS` can sign in. The Google refresh token is encrypted on disk (AES-256-GCM) and never reaches the browser or the logs. Cookies are `httpOnly` and `SameSite=Lax`, every change needs a CSRF header, scripts run only with a per-request nonce, sign-in and upload routes are rate limited, uploads are type-checked, size-capped and streamed, and text that looks like a spreadsheet formula is always stored and exported as text.
+
+## For the maintainer
+
+See [docs/MAINTAINER.md](docs/MAINTAINER.md): adding a category or column, switching to a backup, changing secrets, moving host, and reading System health. Design decisions and open items are in [DECISIONS.md](DECISIONS.md).
