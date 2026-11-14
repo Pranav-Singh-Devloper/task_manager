@@ -17,18 +17,18 @@ Make the M1 slice production-ready: file upload with pending and attached states
 
 ## Tasks
 
-- [ ] `files` service and routes (`POST /files`, `DELETE /files/:id`)
-- [ ] Add files UI in the meeting form and detail page
-- [ ] `calendarSync.ts` with payload builder and tests
-- [ ] Calendar hooks on create, update, reschedule, cancel, delete, restore, undo
-- [ ] Sync-status chips and retry routes (`/calendar/retry/:id`, `/calendar/retry-all`)
-- [ ] Background jobs with `node-cron`, last-run status in state file
-- [ ] Failure-injection tests: `calendar`, `drive`, `network`
+- [x] `files` service and routes (`POST /files`, `DELETE /files/:id`)
+- [x] Add files UI in the meeting form and detail page
+- [x] `calendarSync.ts` with payload builder and tests
+- [x] Calendar hooks on create, update, reschedule, cancel, delete, restore, undo
+- [x] Sync-status chips and retry routes (`/calendar/retry/:id`, `/calendar/retry-all`)
+- [x] Background jobs with `node-cron`, last-run status in state file
+- [x] Failure-injection tests: `calendar` and `drive` here. A `network` failure hits the Sheet before Calendar or Drive, so it is covered by the M2 save tests.
 
 ## Definition of done
 
-- Creating a meeting puts an event on the calendar with reminders (about 10 s on a real account).
-- Rescheduling moves it. Cancelling removes it. Restoring brings it back without a duplicate.
-- A PDF uploaded in the form lands in Drive and its link appears in the Sheet and on the dashboard.
-- A calendar failure still saves the meeting and shows the retry chip.
+- [x] Creating a meeting puts an event on the calendar with reminders (about 10 s on a real account).
+- [x] Rescheduling moves it. Cancelling removes it. Restoring brings it back without a duplicate.
+- [x] A PDF uploaded in the form lands in Drive and its link appears in the Sheet and on the dashboard.
+- [x] A calendar failure still saves the meeting and shows the retry chip.
 - Tag `m5-done`.
