@@ -83,6 +83,8 @@ export function parseRow(headers: string[], row: Cell[], fields: FieldDef[]): Ro
         : '',
       previous_id: text(at('previous_id')),
       series_id: text(at('series_id')),
+      awaiting_next:
+        /^(true|yes|1)$/i.test(text(at('awaiting_next'))) || at('awaiting_next') === true,
     },
   };
 }
@@ -109,7 +111,9 @@ export function serializeRow(
   const out: Cell[] = headers.map((_, i) => base[i] ?? '');
   headers.forEach((h, i) => {
     if (isSystem(h)) {
-      out[i] = (system as unknown as Record<string, Cell>)[h] ?? '';
+      const v = (system as unknown as Record<string, Cell>)[h];
+      // A true flag is written as TRUE and a false one as an empty cell, so the Sheet stays tidy.
+      out[i] = typeof v === 'boolean' ? (v ? 'TRUE' : '') : (v ?? '');
       return;
     }
     const f = byKey.get(h);

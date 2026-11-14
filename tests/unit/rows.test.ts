@@ -18,6 +18,7 @@ const system = (over = {}) => ({
   calendar_sync: 'ok' as const,
   previous_id: '',
   series_id: '',
+    awaiting_next: false,
   ...over,
 });
 

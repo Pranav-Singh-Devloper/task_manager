@@ -52,6 +52,7 @@ export function toMeeting(store: SheetStore, snap: Snapshot, slug: string, entry
     calendar_sync: system.calendar_sync,
     previous_id: system.previous_id,
     series_id: system.series_id,
+    awaiting_next: system.awaiting_next,
     needs_attention: problems,
     incomplete: missingRequired(cfg?.fields ?? [], values, Boolean(cfg?.category.title_template)),
   };

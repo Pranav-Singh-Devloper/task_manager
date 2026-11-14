@@ -4,16 +4,29 @@ import type { FieldValue } from '../../shared/types';
 /** An undo is valid for 10 minutes, and only while nobody has changed the row since (§9 rule 19). */
 export const UNDO_WINDOW_MS = 10 * 60 * 1000;
 
-export interface UndoRecord {
+/** What to put back on one meeting. */
+export interface UndoRevert {
+  /** The old values of the fields that changed. */
+  values: Record<string, FieldValue>;
+  deleted_at?: string;
+  awaiting_next?: boolean;
+}
+
+/** One meeting to restore, and the rev it must still have. */
+export interface UndoStep {
   meetingId: string;
   categorySlug: string;
   /** The rev the row has right after the action. If it is different later, the undo is refused. */
   expectedRev: number;
+  revert: UndoRevert;
+}
+
+export interface UndoRecord extends UndoStep {
   user: string;
-  /** What to put back: the old values of the fields that changed. */
-  revert: { values: Record<string, FieldValue>; deleted_at?: string };
   /** A short plain-language label, e.g. "Meeting cancelled". */
   label: string;
+  /** A second meeting changed by the same action, undone first (the next meeting the done flow made). */
+  also?: UndoStep;
 }
 
 /**

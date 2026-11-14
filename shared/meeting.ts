@@ -12,6 +12,7 @@ export interface SystemFields {
   calendar_sync: CalendarSyncState | '';
   previous_id: string;
   series_id: string;
+  awaiting_next: boolean;
 }
 
 /** A meeting as the API returns it: core and category fields together, computed values and a ready-made title. */
@@ -30,6 +31,8 @@ export interface Meeting {
   calendar_sync: CalendarSyncState | '';
   previous_id: string;
   series_id: string;
+  /** The last sitting is done and the next date is not decided yet. */
+  awaiting_next: boolean;
   /** Cells that could not be read, in plain words ("needs attention"). */
   needs_attention: string[];
   /** Required fields that are empty: the "Incomplete" chip. */

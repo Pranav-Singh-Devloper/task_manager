@@ -57,6 +57,7 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
           code: err.code,
           message: err.message,
           ...(err.issues ? { issues: err.issues } : {}),
+          ...(err.details ? { details: err.details } : {}),
         },
       });
       return;

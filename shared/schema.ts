@@ -12,6 +12,8 @@ export const SYSTEM_COLUMNS = [
   'calendar_sync',
   'previous_id',
   'series_id',
+  /** TRUE when the last sitting is done but the next date is not decided yet (§7.6). */
+  'awaiting_next',
 ] as const;
 export type SystemColumn = (typeof SYSTEM_COLUMNS)[number];
 

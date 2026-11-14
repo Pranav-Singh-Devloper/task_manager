@@ -7,6 +7,8 @@ export class AppError extends Error {
     readonly code: string,
     message: string,
     readonly issues?: ValidationIssue[],
+    /** Extra facts a screen can use, e.g. which meeting already follows this one. */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'AppError';

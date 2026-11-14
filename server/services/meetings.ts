@@ -14,7 +14,7 @@ import type { CategoryConfig } from './config';
 import { toMeeting } from './meetingView';
 import { parseRow, serializeRow, type RowRecord } from './rows';
 import type { Snapshot, SheetStore } from './store';
-import { UndoService, type UndoRecord } from './undo';
+import { UndoService, type UndoRecord, type UndoStep } from './undo';
 
 export interface Actor {
   email: string;
@@ -353,6 +353,7 @@ export class MeetingService {
         calendar_sync: upcoming ? 'pending' : 'none',
         previous_id: input.previousId ?? '',
         series_id: '',
+        awaiting_next: false,
       };
       const cells = serializeRow(data.headers, [], values, system, cfg.fields);
       const row = await this.store.google.sheets.appendRows(this.store.spreadsheetId, cfg.tab.gid, [
@@ -597,44 +598,54 @@ export class MeetingService {
     if (!rec || rec.user !== actor.email) {
       throw new UndoUnavailableError('Undo is only available for 10 minutes after a change.');
     }
+    // A change that touched two meetings (the done flow) is undone as a pair: the new one first, then the first.
+    const steps: UndoStep[] = rec.also ? [rec.also, rec] : [rec];
     try {
-      const result = await this.mutate(
-        rec.meetingId,
-        rec.expectedRev,
-        { ...actor, source: 'undo' },
-        (c) => {
-          const next = { ...c.record.values, ...rec.revert.values };
-          const keys = Object.keys(rec.revert.values);
-          const changes: Record<string, [unknown, unknown]> = diff(c.record.values, next, keys);
-          const system: Partial<SystemFields> = { calendar_sync: 'pending' };
-          if (rec.revert.deleted_at !== undefined) {
-            system.deleted_at = rec.revert.deleted_at;
-            changes.deleted_at = [c.record.system.deleted_at, rec.revert.deleted_at];
-          }
-          const minutes = Number(c.snap.config.settings.default_duration_min);
-          const o = c.record.values;
-          const timeChanged = TIME_KEYS.some((k) => k in changes);
-          const eff = (v: Record<string, FieldValue>) => ({
-            date: String(v.date ?? ''),
-            start: String(v.start_time ?? ''),
-            end: endTimeFor(String(v.start_time ?? ''), v.end_time as string | null, minutes) ?? '',
-          });
-          return {
-            values: next,
-            system,
-            action: 'undo',
-            changes,
-            reschedule: timeChanged ? { old: eff(o), next: eff(next) } : undefined,
-            source: 'undo',
-          };
-        },
-      );
+      // Check every meeting is still as the action left it before changing any of them.
+      for (const step of steps) {
+        const current = await this.get(step.meetingId);
+        if (current.rev !== step.expectedRev) throw new UndoUnavailableError();
+      }
+      let result: MutationResult | null = null;
+      for (const step of steps) result = await this.applyUndoStep(step, actor);
       this.undo.consume(token);
-      return { ...result, label: rec.label };
+      return { ...(result as MutationResult), label: rec.label };
     } catch (err) {
       if (err instanceof ConflictError || err instanceof NotFoundError)
         throw new UndoUnavailableError();
       throw err;
     }
+  }
+
+  private applyUndoStep(step: UndoStep, actor: Actor): Promise<MutationResult> {
+    return this.mutate(step.meetingId, step.expectedRev, { ...actor, source: 'undo' }, (c) => {
+      const next = { ...c.record.values, ...step.revert.values };
+      const keys = Object.keys(step.revert.values);
+      const changes: Record<string, [unknown, unknown]> = diff(c.record.values, next, keys);
+      const system: Partial<SystemFields> = { calendar_sync: 'pending' };
+      if (step.revert.deleted_at !== undefined) {
+        system.deleted_at = step.revert.deleted_at;
+        changes.deleted_at = [c.record.system.deleted_at, step.revert.deleted_at];
+      }
+      if (step.revert.awaiting_next !== undefined) {
+        system.awaiting_next = step.revert.awaiting_next;
+        changes.awaiting_next = [c.record.system.awaiting_next, step.revert.awaiting_next];
+      }
+      const minutes = Number(c.snap.config.settings.default_duration_min);
+      const timeChanged = TIME_KEYS.some((k) => k in changes);
+      const eff = (v: Record<string, FieldValue>) => ({
+        date: String(v.date ?? ''),
+        start: String(v.start_time ?? ''),
+        end: endTimeFor(String(v.start_time ?? ''), v.end_time as string | null, minutes) ?? '',
+      });
+      return {
+        values: next,
+        system,
+        action: 'undo',
+        changes,
+        reschedule: timeChanged ? { old: eff(c.record.values), next: eff(next) } : undefined,
+        source: 'undo',
+      };
+    });
   }
 }
