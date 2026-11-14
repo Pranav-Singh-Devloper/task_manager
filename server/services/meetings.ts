@@ -145,9 +145,16 @@ interface Plan {
   reschedule?: Omit<RescheduleEntry, 'meetingId' | 'categorySlug' | 'source'>;
   undo?: Pick<UndoRecord, 'revert' | 'label' | 'also'>;
   source?: ChangeSource;
+  /** Bookkeeping that is not a change the person made: no new rev (open forms stay valid), no log entry. */
+  keepRev?: boolean;
+  /** Do not tell the calendar. Used when recording the calendar's own result. */
+  silent?: boolean;
 }
 
 export class MeetingService {
+  /** Called with a meeting id after every saved change, so the calendar can follow. Set once at start-up. */
+  onChanged: ((id: string) => void) | null = null;
+
   constructor(
     private readonly store: SheetStore,
     private readonly undo: UndoService,
@@ -268,8 +275,8 @@ export class MeetingService {
       const system: SystemFields = {
         ...record.system,
         ...plan.system,
-        rev: record.system.rev + 1,
-        updated_at: now.toISOString(),
+        rev: plan.keepRev ? record.system.rev : record.system.rev + 1,
+        updated_at: plan.keepRev ? record.system.updated_at : now.toISOString(),
       };
       const cells = serializeRow(data.headers, live, plan.values, system, cfg.fields);
       await google.sheets.updateRow(spreadsheetId, cfg.tab.gid, entry.row, cells);
@@ -277,14 +284,16 @@ export class MeetingService {
       this.store.applyRow(slug, entry.row, cells, written);
 
       const source = plan.source ?? actor.source;
-      await log.audit({
-        user: actor.email,
-        action: plan.action,
-        table: cfg.tab.title,
-        rowId: id,
-        changes: plan.changes,
-        source,
-      });
+      if (!plan.keepRev) {
+        await log.audit({
+          user: actor.email,
+          action: plan.action,
+          table: cfg.tab.title,
+          rowId: id,
+          changes: plan.changes,
+          source,
+        });
+      }
       if (plan.reschedule) {
         await log.reschedule({
           ...plan.reschedule,
@@ -303,10 +312,51 @@ export class MeetingService {
             ...plan.undo,
           })
         : null;
+      if (!plan.silent) this.onChanged?.(id);
       const fresh = await this.store.snapshot();
       return {
         meeting: toMeeting(this.store, fresh, slug, fresh.categories.get(slug)!.entries.get(id)!),
         undoToken,
+      };
+    });
+  }
+
+  /**
+   * Keeps the `files` cell in step with the attached files: one view link per line, so the raw Sheet is useful on its own (§5.7).
+   * The rev does not change, so a form that is open stays valid.
+   */
+  async setFilesCell(id: string, links: string[], actor: Actor): Promise<void> {
+    const text = links.join('\n');
+    await this.mutate(id, null, actor, (c) => {
+      if ((c.record.values.files ?? '') === text) return null;
+      return {
+        values: { ...c.record.values, files: text },
+        system: { calendar_sync: c.record.system.calendar_sync === 'none' ? 'none' : 'pending' },
+        action: 'update',
+        changes: {},
+        keepRev: true,
+      };
+    });
+  }
+
+  /** Records what the calendar said. Skipped if the meeting changed while we were talking to Google: a newer sync is queued. */
+  async recordSync(
+    id: string,
+    seenRev: number,
+    state: 'ok' | 'error' | 'none',
+    eventId: string,
+  ): Promise<void> {
+    await this.mutate(id, null, { email: 'calendar', source: 'job' }, (c) => {
+      if (c.record.system.rev !== seenRev) return null;
+      if (c.record.system.calendar_sync === state && c.record.system.calendar_event_id === eventId)
+        return null;
+      return {
+        values: c.record.values,
+        system: { calendar_sync: state, calendar_event_id: eventId },
+        action: 'update',
+        changes: {},
+        keepRev: true,
+        silent: true,
       };
     });
   }
@@ -443,7 +493,10 @@ export class MeetingService {
         existing: false,
       };
     });
-    if (!created.existing) await this.learn(input.category, created.meeting.values);
+    if (!created.existing) {
+      await this.learn(input.category, created.meeting.values);
+      this.onChanged?.(input.id);
+    }
     return created;
   }
 
