@@ -10,8 +10,8 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const logger = createLogger(env.logLevel, !env.isProduction && process.stdout.isTTY);
 
-  const google = await createGoogleServices(env);
-  const api = createApp({ env, google, logger });
+  const { google, auth } = await createGoogleServices(env);
+  const api = createApp({ env, google, logger, auth });
 
   const nextApp = next({ dev: !env.isProduction, dir: process.cwd() });
   const handle = nextApp.getRequestHandler();
