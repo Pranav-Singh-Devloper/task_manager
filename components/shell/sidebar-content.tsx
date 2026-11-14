@@ -14,7 +14,8 @@ export function SidebarContent() {
 
   return (
     <nav aria-label={t('label')} className="flex flex-col gap-4">
-      <Link href="/meetings/new" className={buttonClasses('primary', 'lg', 'w-full')}>
+      {/* Less side padding than other large buttons, so "+ New meeting" stays on one line in the 240 px sidebar. */}
+      <Link href="/meetings/new" className={buttonClasses('primary', 'lg', 'w-full !px-3')}>
         {t('newMeeting')}
       </Link>
       <ul className="flex flex-col gap-2">
