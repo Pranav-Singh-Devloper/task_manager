@@ -6,6 +6,7 @@ import { requireSession } from './middleware/session';
 import { authRouter } from './routes/auth';
 import { healthRouter } from './routes/health';
 import { metaRouter } from './routes/meta';
+import { spikeRouter } from './routes/spike';
 import type { GoogleAuth } from './services/google/auth';
 import type { GoogleServices } from './services/google/types';
 
@@ -32,6 +33,7 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
   // Everything below needs a signed-in user, and mutating requests need the CSRF header.
   api.use(requireSession(env));
   api.use(metaRouter(google));
+  api.use('/spike', spikeRouter(env, google));
   api.use((_req, res) => {
     res.status(404).json({ error: { code: 'not_found', message: 'We could not find that.' } });
   });
