@@ -1,0 +1,42 @@
+import express, { type ErrorRequestHandler, type Express } from 'express';
+import helmet from 'helmet';
+import type { Logger } from 'pino';
+import type { Env } from './env';
+import { healthRouter } from './routes/health';
+import type { GoogleServices } from './services/google/types';
+
+export interface AppDeps {
+  env: Env;
+  google: GoogleServices;
+  logger: Logger;
+}
+
+/** The API half of the server. Next.js pages are attached in index.ts. */
+export function createApp({ env, google, logger }: AppDeps): Express {
+  const app = express();
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1);
+  // The strict nonce-based CSP is added in the hardening phase; Next dev needs inline scripts until then.
+  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(express.json({ limit: '1mb' }));
+
+  const api = express.Router();
+  api.use(healthRouter(env, google));
+  api.use((_req, res) => {
+    res.status(404).json({ error: { code: 'not_found', message: 'We could not find that.' } });
+  });
+  app.use('/api', api);
+
+  const onError: ErrorRequestHandler = (err, req, res, _next) => {
+    logger.error({ err, path: req.path }, 'request failed');
+    if (res.headersSent) return;
+    res.status(500).json({
+      error: {
+        code: 'server_error',
+        message: 'Something went wrong on our side. Please try again.',
+      },
+    });
+  };
+  app.use(onError);
+  return app;
+}
