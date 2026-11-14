@@ -131,6 +131,12 @@ export interface AppState {
   activeSpreadsheetId?: string;
   driveRootFolderId?: string;
   driveBackupsFolderId?: string;
+  /** Scopes the owner has granted, so a missing scope can be requested again. */
+  grantedScopes?: string[];
+  /** Set when Google rejected the refresh token (invalid_grant). Cleared by the owner's next sign-in. */
+  tokenInvalid?: boolean;
+  /** More than one database file was found in Drive; shown in System health. */
+  duplicateDatabases?: number;
   jobs: Record<string, JobStatus>;
 }
 
