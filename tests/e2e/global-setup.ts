@@ -1,7 +1,21 @@
 import { request } from '@playwright/test';
 
 const BASE = 'http://localhost:3100';
-const PAGES = ['/', '/admin', '/settings', '/design', '/meetings/new', '/login'];
+const PAGES = [
+  '/',
+  '/admin',
+  '/settings',
+  '/design',
+  '/login',
+  '/meetings/new',
+  '/meetings/new?category=ccie',
+  '/categories/new',
+  // Dynamic pages: any id compiles the route.
+  '/meetings/warm-up',
+  '/meetings/warm-up/edit',
+  '/meetings/warm-up/reschedule',
+  '/meetings/warm-up/done',
+];
 
 /**
  * Signs in once through the mock Google flow and saves the cookie for every test.
