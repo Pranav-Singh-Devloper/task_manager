@@ -13,6 +13,7 @@ import type { Meeting } from '@/shared/meeting';
 import type { FieldDef } from '@/shared/types';
 import { useToast } from '@/components/ui';
 import { dateText, fullDate, stampText, timeText, valueText } from './format';
+import { FilesField } from './files-field';
 import { StatusChip } from './status-chip';
 
 const CORE = new Set([
@@ -128,6 +129,33 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
   const kind = (name: string) => (primary === name ? 'primary' : 'outline');
 
   const rescheduledTimes = history?.reschedules.length ?? 0;
+  // What the Calendar card says (§7.3 item 7). Cancelled and deleted meetings are taken off the calendar on purpose.
+  const calendarState: 'ok' | 'missing' | 'removed' | 'past' =
+    deleted || status === 'Cancelled'
+      ? 'removed'
+      : meeting.calendar_sync === 'ok'
+        ? 'ok'
+        : meeting.calendar_sync === 'none' || meeting.calendar_sync === ''
+          ? 'past'
+          : 'missing';
+  const offCalendar = calendarState === 'missing';
+
+  async function retryCalendar() {
+    setBusy(true);
+    try {
+      const r = await api<{ meeting: Meeting }>(`/calendar/retry/${meeting.id}`, {
+        method: 'POST',
+      });
+      await client.invalidateQueries();
+      toast.show({
+        message: r.meeting.calendar_sync === 'ok' ? t('calendarFixed') : t('calendarStillFailing'),
+      });
+    } catch (e) {
+      toast.show({ message: e instanceof ApiError ? e.message : t('actionFailed') });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function act(call: () => Promise<{ undo_token?: string | null }>, message: string) {
     setBusy(true);
@@ -218,6 +246,7 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
           )}
           {meeting.incomplete.length > 0 && <Chip>{t('incomplete')}</Chip>}
           {meeting.awaiting_next && <Chip>{t('waitingNext')}</Chip>}
+          {offCalendar && <Chip>{t('chipNoCalendar')}</Chip>}
           {deleted && <Chip>{t('inTrash')}</Chip>}
         </div>
       </div>
@@ -308,6 +337,44 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
             <dl>{rows(specific)}</dl>
           </>
         )}
+      </Card>
+
+      <Card>
+        <CardTitle>{t('files')}</CardTitle>
+        <FilesField
+          meetingId={meeting.id}
+          category={meeting.category_slug}
+          saved={meeting.files}
+          onSavedChange={() => void client.invalidateQueries()}
+          attachNow
+        />
+      </Card>
+
+      <Card>
+        <CardTitle>{t('calendar')}</CardTitle>
+        {calendarState === 'ok' && date && (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="flex-1 font-semibold">{t('calendarOk')}</p>
+            <a
+              href={`https://calendar.google.com/calendar/u/0/r/day/${date.slice(0, 4)}/${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonClasses('outline')}
+            >
+              {t('calendarOpen')}
+            </a>
+          </div>
+        )}
+        {calendarState === 'missing' && (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="flex-1 font-semibold">{t('calendarMissing')}</p>
+            <Button variant="primary" disabled={busy} onClick={() => void retryCalendar()}>
+              {t('calendarTryAgain')}
+            </Button>
+          </div>
+        )}
+        {calendarState === 'removed' && <p>{t('calendarRemoved')}</p>}
+        {calendarState === 'past' && <p>{t('calendarPast')}</p>}
       </Card>
 
       <Card>
