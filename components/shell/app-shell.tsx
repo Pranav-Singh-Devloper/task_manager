@@ -9,6 +9,8 @@ import { CloseIcon, MenuIcon, PlusIcon } from '../icons';
 import { Button, buttonClasses } from '../ui/button';
 import { NAV_ITEMS, isActive } from './nav-items';
 import { SidebarContent } from './sidebar-content';
+import { SignInBanner } from './sign-in-banner';
+import { SignOutButton } from './sign-out-button';
 import { TopBarControls } from './top-bar-controls';
 
 /**
@@ -68,6 +70,7 @@ export function AppShell({ userName, children }: { userName: string; children: R
           <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
             <TopBarControls />
             <p className="font-semibold">{userName}</p>
+            <SignOutButton />
           </div>
         </div>
       </header>
@@ -77,6 +80,7 @@ export function AppShell({ userName, children }: { userName: string; children: R
         tabIndex={-1}
         className="mx-auto max-w-[1200px] px-4 pb-28 pt-6 md:px-8 md:pb-10"
       >
+        <SignInBanner />
         {children}
       </main>
 
