@@ -18,6 +18,14 @@ Format: date · decision · why · how to undo it.
 - **Undo notices use Radix Toast** (10 s minimum, paused on hover and focus). Radix announces each notice through its own polite `role="status"` live region, so no extra role is added.
 - **Demo data dates are relative to today**, in the configured timezone, so there are always upcoming and past meetings.
 
+## 2026-11-14 (Google Cloud setup)
+
+- **Google Cloud project "Meetings Manager" created** with the Sheets, Drive, Calendar and Gmail APIs enabled. Gmail is enabled now so the Phase 2 digest needs no further setup.
+- **OAuth consent screen:** External, scopes `openid`, `userinfo.email`, `userinfo.profile`, `drive.file` and `calendar.events`. `gmail.send` is not added yet; it is requested later through incremental consent (SPEC §5.2).
+- **OAuth client:** Web application with one redirect URI, `http://localhost:3000/api/auth/google/callback`. The client ID and secret live only in the git-ignored `.env`. The secret cannot be viewed again in the console; if lost, create a new one in Google Auth Platform, then Clients. Undo: delete the client in the console.
+- **`GOOGLE_MODE` stays `mock` in `.env`** until the live adapters exist (M1).
+- **The app is in Testing mode, not yet published.** Why: Google requires a homepage URL and a privacy policy URL before an external app can be published, and there is no production domain yet. While in Testing, the owner's refresh token expires after 7 days (SPEC §5.1). Only the owner's Google account is listed as a test user. To finish: deploy, add the production redirect URI to the client, fill in Branding with the homepage and privacy policy links, then click Publish app on the Audience page.
+
 ## Open items that need a real Google account
 
 All `[Verify]` items in SPEC §5 and M1 are still open: Sheets under `drive.file` only, custom event id and 409 on reuse, restoring a deleted event with `update` + `status: "confirmed"`, whether `files.copy` keeps `appProperties`, popup reminders on a phone, restart without sign-in. The mock follows the behaviour the spec expects, so these must be confirmed against real Google before M1 is called done.
