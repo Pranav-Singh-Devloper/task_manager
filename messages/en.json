@@ -35,7 +35,7 @@
     "on": "On",
     "off": "Off",
     "signedInAs": "Signed in as {name}",
-    "demoUser": "Demo user"
+    "signOut": "Sign out"
   },
   "combobox": {
     "add": "Add “{value}”",
@@ -86,5 +86,21 @@
     "dialogTitle": "Delete this meeting?",
     "dialogBody": "You can bring it back from Trash.",
     "dialogConfirm": "Delete"
+  },
+  "login": {
+    "title": "Meetings Manager",
+    "intro": "Your meetings, reminders and documents in one place. Sign in with your Google account to begin.",
+    "signIn": "Sign in with Google",
+    "differentAccount": "Use a different account",
+    "wrong_account": "You signed in as {email}. This app is set up for a different Google account.",
+    "not_set_up": "The app isn't set up yet. The owner needs to sign in once first.",
+    "missing_scope": "The app needs permission to use your Google Calendar and Drive. Please sign in again and leave both boxes ticked.",
+    "setup_failed": "We couldn't finish setting up your database. Nothing was lost. Please try again in a minute.",
+    "cancelled": "Sign-in was cancelled. You can try again whenever you are ready.",
+    "try_again": "Something went wrong while signing in. Please try again."
+  },
+  "banner": {
+    "signInAgain": "Please sign in with Google again.",
+    "signIn": "Sign in"
   }
 }
