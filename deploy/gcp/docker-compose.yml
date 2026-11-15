@@ -1,6 +1,8 @@
 # Runs the app and a small web server that gets a free HTTPS certificate automatically.
 services:
   app:
+    # Built by GitHub (see .github/workflows/publish-image.yml) because a 1 GB VM can't build it.
+    image: ghcr.io/pranav-singh-devloper/task_manager:latest
     build: ../..
     restart: unless-stopped
     env_file: .env
