@@ -10,7 +10,8 @@ import {
 } from 'react';
 
 export const fieldClasses = clsx(
-  'block w-full min-h-tap rounded-lg border-ui border-line bg-surface px-4 py-2 text-base text-ink',
+  'block w-full min-h-tap rounded-xl border-ui border-line bg-surface px-4 py-2 text-base text-ink shadow-sm',
+  'transition-[border-color,box-shadow] hover:border-accent focus-visible:border-accent',
   'placeholder:text-muted aria-[invalid=true]:border-danger disabled:opacity-60',
 );
 

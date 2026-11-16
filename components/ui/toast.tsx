@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             type="background"
             duration={Math.max(item.durationMs ?? MIN_TOAST_MS, MIN_TOAST_MS)}
             onOpenChange={(open) => !open && remove(item.id)}
-            className="fade-in flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-4 shadow-lg"
+            className="fade-in flex flex-wrap items-center gap-3 rounded-2xl border-ui border-line bg-surface p-4 shadow-lg"
           >
             <Toast.Description className="flex-1 text-base font-semibold">
               {item.message}

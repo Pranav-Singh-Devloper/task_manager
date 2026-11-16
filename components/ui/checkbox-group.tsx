@@ -22,8 +22,10 @@ export function CheckboxGroup({ options, values, onChange, ...aria }: CheckboxGr
           <label
             key={o.value}
             className={clsx(
-              'flex min-h-tap cursor-pointer items-center gap-3 rounded-lg border-ui px-4 py-2 text-base font-semibold',
-              on ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface text-ink',
+              'lift flex min-h-tap cursor-pointer items-center gap-3 rounded-xl border-ui px-4 py-2 text-base font-semibold',
+              on
+                ? 'btn-primary border-accent bg-accent text-accent-ink'
+                : 'border-line bg-surface text-ink shadow-sm hover:bg-sunken',
               'has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2',
             )}
           >
@@ -38,7 +40,7 @@ export function CheckboxGroup({ options, values, onChange, ...aria }: CheckboxGr
             <span
               aria-hidden="true"
               className={clsx(
-                'flex h-6 w-6 shrink-0 items-center justify-center rounded border-ui',
+                'flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-ui',
                 on
                   ? 'border-accent-ink bg-accent-ink text-accent'
                   : 'border-line bg-surface text-transparent',

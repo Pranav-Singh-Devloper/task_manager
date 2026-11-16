@@ -13,7 +13,7 @@ for (const [name, size] of [
 }
 // A maskable icon keeps its artwork inside the middle 80%, so phones can crop it to any shape.
 const inner = await sharp(svg, { density: 384 }).resize(410, 410).png().toBuffer();
-await sharp({ create: { width: 512, height: 512, channels: 4, background: '#1e40af' } })
+await sharp({ create: { width: 512, height: 512, channels: 4, background: '#8f3812' } })
   .composite([{ input: inner, gravity: 'centre' }])
   .png()
   .toFile(out('icon-maskable-512.png'));

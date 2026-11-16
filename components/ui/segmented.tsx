@@ -21,18 +21,19 @@ export function Segmented<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className="inline-flex overflow-hidden rounded-lg border-ui border-line"
+      className="inline-flex gap-1 rounded-xl border-ui border-line bg-sunken p-1"
     >
-      {options.map((o, i) => (
+      {options.map((o) => (
         <button
           key={o.value}
           type="button"
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={clsx(
-            'min-h-tap min-w-tap px-5 py-2 text-base font-semibold',
-            i > 0 && 'border-l-ui border-line',
-            value === o.value ? 'bg-accent text-accent-ink' : 'bg-surface text-ink hover:bg-page',
+            'min-h-tap min-w-tap rounded-lg px-5 py-2 text-base font-semibold transition-colors',
+            value === o.value
+              ? 'btn-primary bg-accent text-accent-ink'
+              : 'bg-transparent text-ink hover:bg-surface',
           )}
         >
           {o.label}

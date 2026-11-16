@@ -112,7 +112,7 @@ export function Combobox({
         id={listId}
         role="listbox"
         hidden={!open}
-        className="fade-in absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border-ui border-line bg-surface shadow-lg"
+        className="fade-in absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border-ui border-line bg-surface shadow-lg"
       >
         {items.length === 0 && <li className="px-4 py-3 text-muted">{t('noMatches')}</li>}
         {items.map((item, i) => (

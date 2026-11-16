@@ -1,4 +1,5 @@
 import '@fontsource-variable/noto-sans';
+import '@fontsource-variable/fraunces';
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
@@ -9,7 +10,7 @@ import { ServiceWorker } from '@/components/service-worker';
 import { PreferencesProvider } from '@/components/preferences';
 import { ToastProvider } from '@/components/ui/toast';
 import { QueryProvider } from '@/lib/queries';
-import { PREF_COOKIE, parseContrast, parseTextSize } from '@/shared/preferences';
+import { PREF_COOKIE, parseContrast, parseMotion, parseTextSize } from '@/shared/preferences';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('common');
@@ -24,21 +25,26 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#1e40af',
+  themeColor: '#fbf7f1',
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const jar = await cookies();
   const textSize = parseTextSize(jar.get(PREF_COOKIE.textSize)?.value);
   const contrast = parseContrast(jar.get(PREF_COOKIE.contrast)?.value);
+  const motion = parseMotion(jar.get(PREF_COOKIE.motion)?.value);
   const messages = await getMessages();
   const t = await getTranslations('common');
 
   return (
-    <html lang="en" data-text-size={textSize} data-contrast={contrast}>
+    <html lang="en" data-text-size={textSize} data-contrast={contrast} data-motion={motion}>
       <body>
         <NextIntlClientProvider messages={messages}>
-          <PreferencesProvider initialTextSize={textSize} initialContrast={contrast}>
+          <PreferencesProvider
+            initialTextSize={textSize}
+            initialContrast={contrast}
+            initialMotion={motion}
+          >
             <ToastProvider>
               <QueryProvider>
                 <ServiceWorker />

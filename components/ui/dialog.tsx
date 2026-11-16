@@ -31,9 +31,9 @@ export function ConfirmDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fade-in fixed inset-0 z-40 bg-black/50" />
-        <Dialog.Content className="fade-in fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border-ui border-line bg-surface p-6">
-          <Dialog.Title className="mb-2 text-2xl font-semibold">{title}</Dialog.Title>
+        <Dialog.Overlay className="fade-in fixed inset-0 z-40 bg-[#2a1f16]/45 backdrop-blur-sm" />
+        <Dialog.Content className="pop-in fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border-ui border-soft bg-surface p-6 shadow-lg">
+          <Dialog.Title className="mb-2 font-display text-2xl font-semibold">{title}</Dialog.Title>
           <Dialog.Description className="mb-6 text-base">{description}</Dialog.Description>
           <div className="flex flex-wrap justify-end gap-3">
             <Dialog.Close asChild>

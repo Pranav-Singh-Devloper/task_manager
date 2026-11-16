@@ -30,9 +30,9 @@ export function RadioChips({ options, value, onValueChange, ...rest }: RadioChip
           key={o.value}
           value={o.value}
           className={clsx(
-            'inline-flex min-h-tap min-w-tap items-center justify-center gap-2 rounded-lg border-ui border-line px-5 py-2',
-            'bg-surface text-base font-semibold text-ink transition-colors',
-            'data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-ink',
+            'lift inline-flex min-h-tap min-w-tap items-center justify-center gap-2 rounded-xl border-ui border-line px-5 py-2',
+            'bg-surface text-base font-semibold text-ink shadow-sm hover:bg-sunken',
+            'data-[state=checked]:btn-primary data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=checked]:text-accent-ink',
           )}
         >
           <RadioGroup.Indicator>
