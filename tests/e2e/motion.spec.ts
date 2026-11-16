@@ -113,3 +113,31 @@ test.describe('signed out, animations on', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('signed out, device asks for less motion', () => {
+  test.use({ storageState: { cookies: [], origins: [] }, reducedMotion: 'reduce' });
+
+  test('the sign-in button is not rebuilt after the page loads, so focus is never lost', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { removedButtons: number }).removedButtons = 0;
+      new MutationObserver((changes) => {
+        for (const change of changes)
+          for (const node of Array.from(change.removedNodes))
+            if (
+              node instanceof Element &&
+              (node.matches('a[href="/api/auth/google"]') ||
+                node.querySelector('a[href="/api/auth/google"]'))
+            )
+              (window as unknown as { removedButtons: number }).removedButtons += 1;
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await page.goto('/login');
+    await expect(page.getByRole('link', { name: 'Sign in with Google' })).toBeVisible();
+    await page.waitForTimeout(2000);
+    expect(
+      await page.evaluate(() => (window as unknown as { removedButtons: number }).removedButtons),
+    ).toBe(0);
+  });
+});

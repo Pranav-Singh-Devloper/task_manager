@@ -136,16 +136,20 @@ export function Shine({ children }: { children: string }) {
   );
 }
 
-/** A light streak sweeps across the wrapped button when the pointer passes (React Bits GlareHover). */
+/**
+ * A light streak sweeps across the wrapped button when the pointer passes (React Bits GlareHover). The wrapper is
+ * always there and the streak is simply made invisible when animations are off. Swapping the wrapper in and out
+ * would rebuild the button just after the page loads (the server cannot know about reduced motion), which can lose
+ * keyboard focus. GlareHover itself does not sweep on devices that ask for reduced motion.
+ */
 export function Glare({ children, block }: { children: ReactNode; block?: boolean }) {
   const motion = useMotion();
-  if (!motion) return <>{children}</>;
   return (
     <GlareHover
       width={block ? '100%' : 'auto'}
       borderRadius="1rem"
       glareColor="#fff3e6"
-      glareOpacity={0.55}
+      glareOpacity={motion ? 0.55 : 0}
       glareSize={45}
       variant="sheen"
       blendMode="soft-light"
