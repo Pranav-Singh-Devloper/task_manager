@@ -153,21 +153,21 @@ Run against the owner's own Google account in live mode. Test data (a calendar e
 
 ### MVP acceptance checklist (SPEC §15)
 
-| Item | Status |
-|---|---|
-| A first-time user creates a CCIE meeting on a phone in under 90 seconds | Automated run passes (M3). A real first-time person has not tried it. |
-| Event on Google Calendar with reminders; moving the meeting moves the event | Proven on the mock and on real Google for the first slice (M1). The full flow is not re-run on real Google. |
-| Reschedule in 3 taps or fewer, history shows old and new times | Passes |
-| Marking done with a next date in under 30 seconds, next meeting on the calendar | Passes on the mock |
-| Upcoming ascending, Past separate, table and calendar on phone and desktop | Passes |
-| Search finds any category field; filters and sort on any column | Passes |
-| PDF attached during entry is in Drive, link in Sheet and dashboard | Passes on the mock. Needs one real run. |
-| Admin: raw tables, inline editing, add/hide/reorder columns, Required, options, no redeploy | Passes |
-| Delete is undoable, Trash restores, backup before any permanent removal | Passes |
-| A++ and High contrast on every screen; axe reports no serious problems | Passes |
-| Losing the network mid-save loses no input, and trying again makes no duplicate | Passes (the reply is lost after the server has saved, then Try again) |
-| Restarting the server does not sign anyone out or stop the jobs | Passes (M1 restart tests, jobs start with the server). |
-| A row typed by hand into the Sheet shows up in the app and on the calendar | Passes on the mock (M2 adoption, M5 calendar). |
+| Item                                                                                        | Status                                                                                                      |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| A first-time user creates a CCIE meeting on a phone in under 90 seconds                     | Automated run passes (M3). A real first-time person has not tried it.                                       |
+| Event on Google Calendar with reminders; moving the meeting moves the event                 | Proven on the mock and on real Google for the first slice (M1). The full flow is not re-run on real Google. |
+| Reschedule in 3 taps or fewer, history shows old and new times                              | Passes                                                                                                      |
+| Marking done with a next date in under 30 seconds, next meeting on the calendar             | Passes on the mock                                                                                          |
+| Upcoming ascending, Past separate, table and calendar on phone and desktop                  | Passes                                                                                                      |
+| Search finds any category field; filters and sort on any column                             | Passes                                                                                                      |
+| PDF attached during entry is in Drive, link in Sheet and dashboard                          | Passes on the mock. Needs one real run.                                                                     |
+| Admin: raw tables, inline editing, add/hide/reorder columns, Required, options, no redeploy | Passes                                                                                                      |
+| Delete is undoable, Trash restores, backup before any permanent removal                     | Passes                                                                                                      |
+| A++ and High contrast on every screen; axe reports no serious problems                      | Passes                                                                                                      |
+| Losing the network mid-save loses no input, and trying again makes no duplicate             | Passes (the reply is lost after the server has saved, then Try again)                                       |
+| Restarting the server does not sign anyone out or stop the jobs                             | Passes (M1 restart tests, jobs start with the server).                                                      |
+| A row typed by hand into the Sheet shows up in the app and on the calendar                  | Passes on the mock (M2 adoption, M5 calendar).                                                              |
 
 ### Hosting
 
@@ -179,15 +179,22 @@ The owner asked for a light, warm white look with animated text, backgrounds and
 
 - **Colours.** Warm white page (`#fbf7f1`), cream cards, near-black warm text (15:1), muted text 8.5:1, and one deep terracotta accent (`#8f3812`, 7.2:1 on the page; white on it 7.7:1). Form borders stay at 4.5:1 or more. Headings use Fraunces (a warm serif); body text stays Noto Sans. High contrast still switches to pure black on white with 3 px borders, and also removes every shadow, glow and gradient.
 - **React Bits pieces** (copied into `components/bits/` from the registry, kept as published; the app only uses them through the small wrappers in `components/motion/`):
-  - *Grainient*: a slowly drifting, grainy warm gradient behind the dashboard greeting and the sign-in page. Text on it stays above 11:1.
-  - *SplitText*: each page heading's words rise into place once. The heading keeps its full text as its name for screen readers.
-  - *BlurText*: the line under the greeting and the sign-in introduction come into focus word by word.
-  - *ShinyText*: a slow warm sheen over the app's name in the sidebar.
-  - *SpotlightCard*: a soft warm light follows the pointer over the "Next meeting" card.
-  - *GlareHover*: a light streak across "+ New meeting" and "Sign in with Google" on hover.
-  - *ClickSpark*: a small burst of warm sparks where you click or tap.
-  - *FadeContent*: each new page fades in when you move between pages. The first page of a visit is shown at once, so the screen is never blank while the app starts.
+  - _Grainient_: a slowly drifting, grainy warm gradient behind the dashboard greeting and the sign-in page. Text on it stays above 11:1.
+  - _SplitText_: each page heading's words rise into place once. The heading keeps its full text as its name for screen readers.
+  - _BlurText_: the line under the greeting and the sign-in introduction come into focus word by word.
+  - _ShinyText_: a slow warm sheen over the app's name in the sidebar.
+  - _SpotlightCard_: a soft warm light follows the pointer over the "Next meeting" card.
+  - _GlareHover_: a light streak across "+ New meeting" and "Sign in with Google" on hover.
+  - _ClickSpark_: a small burst of warm sparks where you click or tap.
+  - _FadeContent_: each new page fades in when you move between pages. The first page of a visit is shown at once, so the screen is never blank while the app starts.
 - **Hover effects** are plain CSS: buttons and choice chips lift by 1 px with a warm shadow.
 - **Animations can always be turned off.** Settings has an **Animations On/Off** switch (remembered on the device, like text size). Animations are also off when the device asks for reduced motion and when High contrast is on. When off, every effect shows its plain, still version.
 - **Tests.** The flow tests run with reduced motion so nothing is checked half-way through an animation. `tests/e2e/motion.spec.ts` turns animations on and checks the pages, heading names, axe and the Animations switch.
 - **Adding more React Bits pieces.** `components.json` lists the `@react-bits` registry, so the shadcn CLI or MCP server can fetch them. Copy the TS + Tailwind version into `components/bits/`, add the same three-line note at the top, and use it through a wrapper in `components/motion/` that checks `useMotion()`.
+
+## Smaller text sizes, next three meetings, a tighter dashboard and a new name (requested by the owner, 2026-11-17)
+
+- **Name: Personal Manager.** The app's name on screen, in the browser tab, on the home-screen icon and on the About and Privacy pages is now "Personal Manager". The Google Drive spreadsheet ("Meetings Manager — Database") and folder ("Meetings Manager") keep their names, because the server finds them by name; renaming them in code would make it create new, empty ones. The Privacy page still names those two files as they are.
+- **Text size: A−− and A− added.** The top bar now has five sizes, A−− / A− / A / A+ / A++ (80%, 90%, 100%, 125%, 150%), up from three in SPEC §3. Tap targets never drop below 48 px: `min-h-tap` is now `max(48px, 3rem)`, since 3rem at 80% would be 43 px.
+- **The "Next meeting" card shows the next three.** `/api/meetings/summary` adds `upcoming` (the next three open meetings, soonest first); `next` stays as the first of them. Each meeting is one compact row with its time, title, kind and Open (plus Join when there is a link). Only the soonest meeting's Open is the filled button, so the screen still has one main action.
+- **Less scrolling on the dashboard.** The greeting is smaller and sits beside the next meetings on a wide screen. Search and the three lists share one row on a computer (two lists per row on a phone). The workspace choice has its label beside it. "Sorted by" shares a row with "Choose columns", the attention notes sit side by side, and the gaps are smaller. On a phone the header is shorter: Menu, the name and Sign out share the first row, and the page name (already the page's heading) shows from tablet width up only.

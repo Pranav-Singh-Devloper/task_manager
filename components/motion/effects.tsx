@@ -99,7 +99,7 @@ export function GlowCard({
   as?: 'section' | 'div';
 }) {
   const motion = useMotion();
-  const base = 'rounded-2xl border-ui border-soft bg-surface p-5 shadow-sm md:p-6';
+  const base = 'rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm md:p-6';
   if (!motion) {
     const Tag = as ?? 'div';
     return <Tag className={clsx(base, className)}>{children}</Tag>;
@@ -111,7 +111,7 @@ export function GlowCard({
       intensity={0.45}
       spotlightSize={320}
       borderGlow={0.9}
-      className={clsx('!rounded-2xl !p-5 md:!p-6', 'border-ui border-soft', className)}
+      className={clsx('!rounded-2xl !p-4 md:!p-6', 'border-ui border-soft', className)}
       style={
         {
           '--spotlight-card-surface': 'var(--surface)',

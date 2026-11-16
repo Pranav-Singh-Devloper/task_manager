@@ -29,9 +29,16 @@
     radial-gradient(900px 480px at -15% 105%, #f8e8d6 0%, rgba(248, 232, 214, 0) 60%);
 }
 
-/* Text size: A / A+ / A++ (100% / 125% / 150%). Everything is in rem, so layouts scale with it. */
+/* Text size: A−− / A− / A / A+ / A++ (80% / 90% / 100% / 125% / 150%). Everything is in rem, so layouts scale
+   with it; tap targets never go below 48 px (see min-h-tap in tailwind.config.ts). */
 html {
   font-size: 18px;
+}
+html[data-text-size='80'] {
+  font-size: 14.4px;
+}
+html[data-text-size='90'] {
+  font-size: 16.2px;
 }
 html[data-text-size='125'] {
   font-size: 22.5px;

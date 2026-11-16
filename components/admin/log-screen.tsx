@@ -65,7 +65,10 @@ export function LogScreen() {
       </p>
       <ul className="flex flex-col gap-3">
         {entries.map((e, i) => (
-          <li key={`${e.at}-${i}`} className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4">
+          <li
+            key={`${e.at}-${i}`}
+            className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
+          >
             <p className="font-semibold">{e.what}</p>
             <p className="text-muted">
               {meta.data ? stampText(e.at, meta.data.settings) : e.at}

@@ -3,11 +3,8 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { GlowCard } from '@/components/motion';
-import { Button, buttonClasses, CardTitle, Chip, Segmented, useToast } from '@/components/ui';
-import { dateText, timeText } from '@/components/meeting/format';
+import { Button, Chip, Segmented, useToast } from '@/components/ui';
 import { api } from '@/lib/api';
 import { isFiltered, toApiQuery, type Tab, type View } from '@/lib/dashboard-params';
 import { useMeta, type Meta } from '@/lib/queries';
@@ -18,8 +15,8 @@ import { Controls } from './controls';
 import { ActiveFilters, FilterBuilder } from './filter-builder';
 import { MeetingCards } from './meeting-cards';
 import { MeetingTable } from './meeting-table';
-import { CategoryChip, StatusCell, isWebLink } from './row-bits';
 import { useDashboard } from './use-dashboard';
+import { NextMeetings } from './next-meetings';
 import { Welcome } from './welcome';
 
 // The calendar is large and only needed when it is chosen, so it loads then.
@@ -40,6 +37,7 @@ interface Page {
 }
 interface Summary {
   next: Meeting | null;
+  upcoming: Meeting[];
   incomplete: number;
   waiting: number;
   unsynced: number;
@@ -67,7 +65,6 @@ export function DashboardScreen() {
 
 function Dashboard({ meta }: { meta: Meta }) {
   const t = useTranslations('dashboard');
-  const nav = useTranslations('nav');
   const common = useTranslations('common');
   const { params, update, clear, here } = useDashboard();
   const mobile = useIsMobile();
@@ -160,63 +157,28 @@ function Dashboard({ meta }: { meta: Meta }) {
   };
 
   const attention = params.attention;
-  const next = summary.data?.next ?? null;
   const filtered = isFiltered(params);
 
   return (
-    <div className="flex flex-col gap-6 pb-8">
-      <Welcome settings={settings} />
-
-      <GlowCard>
-        <CardTitle>{t('nextTitle')}</CardTitle>
-        {summary.isPending ? (
-          <p>{t('loading')}</p>
-        ) : next ? (
-          <div className="flex flex-col gap-3">
-            <p className="font-display text-3xl font-semibold text-accent">
-              {typeof next.values.date === 'string' ? dateText(next.values.date, settings) : ''} ·{' '}
-              {typeof next.values.start_time === 'string'
-                ? timeText(next.values.start_time, settings)
-                : ''}
-            </p>
-            <p className="text-xl font-semibold">{next.title}</p>
-            <div className="flex flex-wrap gap-2">
-              <CategoryChip meeting={next} meta={meta} />
-              <StatusCell meeting={next} />
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href={`/meetings/${next.id}`} className={buttonClasses('primary')}>
-                {t('open')}
-              </Link>
-              {isWebLink(next.values.meeting_link) && (
-                <a
-                  href={next.values.meeting_link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={buttonClasses('outline')}
-                >
-                  {t('join')}
-                </a>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start gap-3">
-            <p>{t('noUpcoming')}</p>
-            <Link href="/meetings/new" className={buttonClasses('primary')}>
-              {nav('newMeeting')}
-            </Link>
-          </div>
-        )}
-      </GlowCard>
+    <div className="flex flex-col gap-4 pb-6">
+      {/* The greeting beside the next three meetings on a wide screen, one above the other on a phone. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
+        <Welcome settings={settings} />
+        <NextMeetings
+          meetings={summary.data?.upcoming ?? []}
+          meta={meta}
+          settings={settings}
+          pending={summary.isPending}
+        />
+      </div>
 
       {/* One plain sentence for each thing that needs a look, each with a button (§7.2). */}
       {!attention &&
         summary.data &&
         (summary.data.incomplete > 0 || summary.data.waiting > 0 || summary.data.unsynced > 0) && (
-          <div role="status" className="flex flex-col gap-2">
+          <div role="status" className="flex flex-wrap gap-2">
             {summary.data.incomplete > 0 && (
-              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-3 pl-5 shadow-sm">
+              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-1 pl-4 shadow-sm">
                 <span className="font-semibold">
                   {t('attentionIncomplete', { count: summary.data.incomplete })}
                 </span>
@@ -224,7 +186,7 @@ function Dashboard({ meta }: { meta: Meta }) {
               </p>
             )}
             {summary.data.unsynced > 0 && (
-              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-3 pl-5 shadow-sm">
+              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-1 pl-4 shadow-sm">
                 <span className="font-semibold">
                   {t('attentionUnsynced', { count: summary.data.unsynced })}
                 </span>
@@ -234,7 +196,7 @@ function Dashboard({ meta }: { meta: Meta }) {
               </p>
             )}
             {summary.data.waiting > 0 && (
-              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-3 pl-5 shadow-sm">
+              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-1 pl-4 shadow-sm">
                 <span className="font-semibold">
                   {t('attentionWaiting', { count: summary.data.waiting })}
                 </span>
@@ -250,9 +212,7 @@ function Dashboard({ meta }: { meta: Meta }) {
         </p>
       )}
 
-      <Controls meta={meta} params={params} update={update} />
-
-      <div className="flex flex-wrap items-center gap-3">
+      <Controls meta={meta} params={params} update={update}>
         <Button aria-expanded={filtersOpen} onClick={() => setFiltersOpen((o) => !o)}>
           {filtersOpen ? t('hideFilters') : t('moreFilters')}
         </Button>
@@ -276,7 +236,7 @@ function Dashboard({ meta }: { meta: Meta }) {
             { value: 'calendar', label: t('calendar') },
           ]}
         />
-      </div>
+      </Controls>
 
       {filtersOpen && (
         <FilterBuilder
@@ -302,32 +262,42 @@ function Dashboard({ meta }: { meta: Meta }) {
       {view === 'calendar' ? (
         <CalendarView meta={meta} params={params} mobile={mobile} here={here} />
       ) : (
-        <section className="flex flex-col gap-4" aria-busy={list.isFetching}>
-          {all.length > 6 && !mobile && (
-            <div className="flex flex-col items-start gap-3">
-              <Button aria-expanded={columnsOpen} onClick={() => setColumnsOpen((o) => !o)}>
-                {columnsOpen ? t('hideColumns') : t('chooseColumns')}
-              </Button>
-              {columnsOpen && (
-                <fieldset className="flex flex-col gap-2 rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm">
-                  <legend className="px-2 font-semibold">{t('chooseColumns')}</legend>
-                  <p className="text-muted">{t('columnsHint')}</p>
-                  {all
-                    .filter((c) => !c.fixed)
-                    .map((c) => (
-                      <label key={c.id} className="flex min-h-tap items-center gap-3 font-semibold">
-                        <input
-                          type="checkbox"
-                          className="h-6 w-6"
-                          checked={isVisible(c, chosen[columnKey])}
-                          onChange={(e) => toggleColumn(c, e.target.checked)}
-                        />
-                        {c.label}
-                      </label>
-                    ))}
-                </fieldset>
+        <section className="flex flex-col gap-3" aria-busy={list.isFetching}>
+          {(sortedCol && meetings.length > 0) || (all.length > 6 && !mobile) ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p role="status" className="text-muted">
+                {sortedCol && meetings.length > 0
+                  ? t('sortedBy', {
+                      column: sortedCol.sortKey === 'date' ? t('colDate') : sortedCol.label,
+                      order: t(orderKey(sortedCol.sortKind, dir)),
+                    })
+                  : ''}
+              </p>
+              {all.length > 6 && !mobile && (
+                <Button aria-expanded={columnsOpen} onClick={() => setColumnsOpen((o) => !o)}>
+                  {columnsOpen ? t('hideColumns') : t('chooseColumns')}
+                </Button>
               )}
             </div>
+          ) : null}
+          {columnsOpen && all.length > 6 && !mobile && (
+            <fieldset className="flex flex-col gap-2 rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm">
+              <legend className="px-2 font-semibold">{t('chooseColumns')}</legend>
+              <p className="text-muted">{t('columnsHint')}</p>
+              {all
+                .filter((c) => !c.fixed)
+                .map((c) => (
+                  <label key={c.id} className="flex min-h-tap items-center gap-3 font-semibold">
+                    <input
+                      type="checkbox"
+                      className="h-6 w-6"
+                      checked={isVisible(c, chosen[columnKey])}
+                      onChange={(e) => toggleColumn(c, e.target.checked)}
+                    />
+                    {c.label}
+                  </label>
+                ))}
+            </fieldset>
           )}
 
           {list.isPending ? (
@@ -350,14 +320,6 @@ function Dashboard({ meta }: { meta: Meta }) {
             </div>
           ) : (
             <>
-              <p role="status" className="text-muted">
-                {sortedCol
-                  ? t('sortedBy', {
-                      column: sortedCol.sortKey === 'date' ? t('colDate') : sortedCol.label,
-                      order: t(orderKey(sortedCol.sortKind, dir)),
-                    })
-                  : ''}
-              </p>
               {mobile ? (
                 <MeetingCards meetings={meetings} meta={meta} grouped={grouped} here={here} />
               ) : (

@@ -185,9 +185,11 @@ export class MeetingService {
     return (await this.query(options)).meetings;
   }
 
-  /** What the dashboard's top needs: the next meeting, and how many need attention. */
+  /** What the dashboard's top needs: the next few meetings, and how many need attention. */
   async summary(): Promise<{
     next: Meeting | null;
+    /** The next three open meetings, soonest first; `next` is the first of them. */
+    upcoming: Meeting[];
     incomplete: number;
     waiting: number;
     unsynced: number;
@@ -210,8 +212,10 @@ export class MeetingService {
         }
       }
     }
+    const soonest = upcoming.filter((m) => isOpenStatus(m.values.meeting_status)).slice(0, 3);
     return {
-      next: upcoming.find((m) => isOpenStatus(m.values.meeting_status)) ?? null,
+      next: soonest[0] ?? null,
+      upcoming: soonest,
       incomplete,
       waiting,
       unsynced,

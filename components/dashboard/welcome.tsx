@@ -28,17 +28,17 @@ export function Welcome({ settings }: { settings: Settings }) {
   const hour = hourIn(settings.timezone, now);
   const greeting =
     hour < 12 ? t('greetMorning') : hour < 17 ? t('greetAfternoon') : t('greetEvening');
-  const today = format(parseISO(todayIn(settings.timezone, now)), 'EEEE, d MMMM yyyy');
+  const today = format(parseISO(todayIn(settings.timezone, now)), 'EEEE, d MMMM');
 
   return (
-    <section className="relative isolate overflow-hidden rounded-3xl border-ui border-soft shadow-md">
+    <section className="relative isolate h-full overflow-hidden rounded-3xl border-ui border-soft shadow-md">
       <WarmBackground />
-      <div className="relative flex flex-col gap-2 px-5 py-7 md:px-8 md:py-10">
-        <p className="font-display text-xl font-semibold text-accent">
+      <div className="relative flex h-full flex-col justify-center gap-1 px-5 py-4 md:px-6 md:py-5">
+        <p className="font-display text-lg font-semibold text-accent">
           {name ? t('greetName', { greeting, name }) : greeting}
         </p>
         <PageTitle>{t('title')}</PageTitle>
-        <FocusText text={t('todayIs', { date: today })} className="text-lg" />
+        <FocusText text={t('todayIs', { date: today })} />
       </div>
     </section>
   );

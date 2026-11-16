@@ -41,7 +41,9 @@ export function AppShell({ userName, children }: { userName: string; children: R
         </aside>
 
         <header className="glass z-30 border-b-ui border-soft md:sticky md:top-0">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 md:px-8">
+          {/* Phone: Menu, the name and Sign out on one row, the text size and contrast buttons below. The page's own
+              heading says where you are, so the page name is shown here from tablet width up only. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 md:gap-x-4 md:px-8 md:py-3">
             <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
               <Dialog.Trigger asChild>
                 <Button className="md:hidden">
@@ -70,11 +72,17 @@ export function AppShell({ userName, children }: { userName: string; children: R
               </Dialog.Portal>
             </Dialog.Root>
 
-            <p className="font-display text-xl font-semibold">{current ? t(current.key) : null}</p>
+            <p className="hidden font-display text-xl font-semibold md:mr-auto md:block">
+              {current ? t(current.key) : null}
+            </p>
 
-            <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="order-last w-full md:order-none md:w-auto">
               <TopBarControls />
-              <p className="font-semibold">{userName}</p>
+            </div>
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-3 md:flex-none md:gap-4">
+              <p className="min-w-0 truncate font-semibold" title={userName}>
+                {userName}
+              </p>
               <SignOutButton />
             </div>
           </div>
@@ -83,7 +91,7 @@ export function AppShell({ userName, children }: { userName: string; children: R
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto max-w-[1200px] px-4 pb-28 pt-6 md:px-8 md:pb-10"
+          className="mx-auto max-w-[1200px] px-4 pb-28 pt-4 md:px-8 md:pb-8 md:pt-5"
         >
           <SignInBanner />
           {children}

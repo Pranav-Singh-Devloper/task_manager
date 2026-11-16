@@ -9,6 +9,7 @@ export function SignOutButton() {
   const router = useRouter();
   return (
     <Button
+      className="shrink-0 whitespace-nowrap"
       onClick={async () => {
         await fetch('/api/auth/logout', { method: 'POST', headers: { 'X-Requested-With': 'mm' } });
         router.push('/login');

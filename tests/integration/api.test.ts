@@ -531,6 +531,9 @@ describe('finding meetings over HTTP', () => {
     const body = await res.json();
     expect(body.next).toBeTruthy();
     expect(body.next.values.date >= '2000-01-01').toBe(true);
+    expect(body.upcoming.length).toBeGreaterThan(0);
+    expect(body.upcoming.length).toBeLessThanOrEqual(3);
+    expect(body.upcoming[0].id).toBe(body.next.id);
     expect(body).toMatchObject({ incomplete: 0, waiting: 0 });
   });
 

@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   server.listen(env.port, () => {
     logger.info(
       { port: env.port, mode: env.googleMode },
-      `Meetings Manager is running at ${env.appUrl}`,
+      `Personal Manager is running at ${env.appUrl}`,
     );
   });
 

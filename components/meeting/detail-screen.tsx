@@ -253,7 +253,10 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
       </div>
 
       {deleted && (
-        <p role="status" className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4 font-semibold">
+        <p
+          role="status"
+          className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4 font-semibold"
+        >
           {t('trashNotice')}
         </p>
       )}

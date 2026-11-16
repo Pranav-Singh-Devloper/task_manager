@@ -1,4 +1,5 @@
-export const TEXT_SIZES = ['100', '125', '150'] as const;
+/** A−− / A− / A / A+ / A++: 80%, 90%, 100%, 125% and 150% of the normal text size. */
+export const TEXT_SIZES = ['80', '90', '100', '125', '150'] as const;
 export type TextSize = (typeof TEXT_SIZES)[number];
 export type Contrast = 'normal' | 'high';
 /** Animated text, backgrounds and hover effects. Off also when the device asks for reduced motion. */

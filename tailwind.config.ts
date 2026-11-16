@@ -30,9 +30,10 @@ const config: Config = {
         md: 'var(--shadow-md)',
         lg: 'var(--shadow-lg)',
       },
-      // Rule Zero: every tap target is at least 48 px. 3rem is 54 px at the base size and grows with text size.
-      minHeight: { tap: '3rem' },
-      minWidth: { tap: '3rem' },
+      // Rule Zero: every tap target is at least 48 px. 3rem is 54 px at the base size and grows with text size; at
+      // the smaller sizes (A− and A−−) 3rem would drop below 48 px, so 48 px is the floor.
+      minHeight: { tap: 'max(48px, 3rem)' },
+      minWidth: { tap: 'max(48px, 3rem)' },
       transitionDuration: { DEFAULT: '200ms' },
     },
   },

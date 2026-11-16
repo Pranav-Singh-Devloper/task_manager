@@ -104,7 +104,7 @@ test.describe('signed out, animations on', () => {
   test('the sign-in page keeps one clear button over its warm background', async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto('/login');
-    await expect(page.getByRole('heading', { level: 1, name: 'Meetings Manager' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Personal Manager' })).toBeVisible();
     const button = page.getByRole('link', { name: 'Sign in with Google' });
     await expect(button).toBeVisible();
     await expect(button).toHaveAttribute('href', '/api/auth/google');

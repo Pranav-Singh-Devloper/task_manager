@@ -56,7 +56,7 @@ test.describe('signed out', () => {
     page,
   }) => {
     for (const [path, heading] of [
-      ['/about', 'Meetings Manager'],
+      ['/about', 'Personal Manager'],
       ['/privacy', 'Privacy policy'],
     ]) {
       await page.goto(path);

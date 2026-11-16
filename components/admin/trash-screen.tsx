@@ -59,7 +59,9 @@ export function TrashScreen() {
         {message}
       </p>
       {trash.data.meetings.length === 0 ? (
-        <p className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4">{t('trashEmpty')}</p>
+        <p className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4">
+          {t('trashEmpty')}
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {trash.data.meetings.map((m) => {

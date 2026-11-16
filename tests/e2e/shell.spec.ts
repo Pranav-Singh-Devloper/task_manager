@@ -138,6 +138,39 @@ test.describe('readability', () => {
     );
   });
 
+  test('A− and A−− make text smaller, and every button stays at least 48 px', async ({ page }) => {
+    await page.goto('/');
+    const banner = page.getByRole('banner');
+    await banner.getByRole('button', { name: /^A−\s/ }).click();
+    await expect
+      .poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)))
+      .toBeCloseTo(16.2, 1);
+    await banner.getByRole('button', { name: /^A−−/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-text-size', '80');
+    await expect(banner.getByRole('button', { name: /^A−−/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    for (const path of PAGES) {
+      await page.goto(path);
+      // Remembered, and already applied by the server.
+      await expect(page.locator('html')).toHaveAttribute('data-text-size', '80');
+      await noHorizontalScroll(page);
+    }
+    await page.goto('/');
+    await expect(page.getByText('Loading your meetings…')).toHaveCount(0);
+    const small = await page
+      .locator('header :is(a, button), nav :is(a, button), main :is(a, button)')
+      .evaluateAll((els) =>
+        els
+          .filter((e) => (e as HTMLElement).offsetParent !== null)
+          .map((e) => ({ text: (e as HTMLElement).innerText.trim(), r: e.getBoundingClientRect() }))
+          .filter(({ r }) => r.width > 0 && r.height < 47.5)
+          .map(({ text, r }) => `${text.slice(0, 30)} (${Math.round(r.height)}px)`),
+      );
+    expect(small).toEqual([]);
+  });
+
   test('high contrast gives black on white with 3 px borders and is remembered', async ({
     page,
   }) => {

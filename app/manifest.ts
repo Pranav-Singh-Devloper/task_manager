@@ -3,8 +3,8 @@ import type { MetadataRoute } from 'next';
 /** Lets the phone offer "Add to Home Screen" and open the app like an app (§7.12). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Meetings Manager',
-    short_name: 'Meetings',
+    name: 'Personal Manager',
+    short_name: 'Personal',
     description: 'Your meetings, reminders, documents and next dates in one place.',
     start_url: '/',
     scope: '/',

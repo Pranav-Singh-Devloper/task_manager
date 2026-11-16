@@ -19,11 +19,22 @@ interface FormFieldProps {
   error?: string;
   /** Use for a group of controls such as radio chips: the label names the group instead of one input. */
   group?: boolean;
+  /** Label and control side by side (wrapping when narrow), for short controls such as a row of chips. */
+  inline?: boolean;
   children: (control: FieldControlProps) => ReactNode;
 }
 
 /** Label, "(Required)" in words, hint and error message, wired together for screen readers. */
-export function FormField({ label, name, required, hint, error, group, children }: FormFieldProps) {
+export function FormField({
+  label,
+  name,
+  required,
+  hint,
+  error,
+  group,
+  inline,
+  children,
+}: FormFieldProps) {
   const t = useTranslations('common');
   const auto = useId();
   const id = name ? `input-${name}` : auto;
@@ -40,7 +51,10 @@ export function FormField({ label, name, required, hint, error, group, children 
   );
 
   return (
-    <div id={name ? `field-${name}` : undefined} className="flex flex-col gap-2">
+    <div
+      id={name ? `field-${name}` : undefined}
+      className={inline ? 'flex flex-wrap items-center gap-x-3 gap-y-2' : 'flex flex-col gap-2'}
+    >
       {group ? (
         <span id={labelId} className="text-base font-semibold">
           {labelContent}

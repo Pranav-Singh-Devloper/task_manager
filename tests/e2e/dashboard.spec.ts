@@ -35,15 +35,34 @@ const calendarReady = async (page: Page) => {
 const api = async (page: Page, path: string) => (await page.request.get(`/api${path}`)).json();
 
 test.describe('the top of the dashboard', () => {
-  test('shows the next meeting with Open and, when there is a link, Join', async ({ page }) => {
+  test('shows the next three meetings, soonest first, each with Open and, when there is a link, Join', async ({
+    page,
+  }) => {
     await openDashboard(page);
     const card = page
-      .locator('section, div')
-      .filter({ has: page.getByRole('heading', { name: 'Next meeting' }) })
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: 'Next 3 meetings' }) })
       .last();
-    await expect(card.getByRole('link', { name: 'Open' })).toBeVisible();
     const summary = await api(page, '/meetings/summary');
-    await expect(page.getByText(summary.next.title, { exact: true }).first()).toBeVisible();
+    expect(summary.upcoming).toHaveLength(3);
+    const rows = card.getByRole('listitem');
+    await expect(rows).toHaveCount(3);
+    for (const [i, m] of (summary.upcoming as { id: string; title: string }[]).entries()) {
+      const row = rows.nth(i);
+      await expect(row.getByText(m.title, { exact: true })).toBeVisible();
+      await expect(row.getByRole('link', { name: `Open — ${m.title}` })).toHaveAttribute(
+        'href',
+        `/meetings/${m.id}`,
+      );
+    }
+    // Only the soonest meeting's Open is the filled main button.
+    const filled = await card
+      .getByRole('link', { name: /^Open/ })
+      .evaluateAll(
+        (els) =>
+          els.filter((e) => getComputedStyle(e).backgroundColor === 'rgb(143, 56, 18)').length,
+      );
+    expect(filled).toBe(1);
   });
 
   test('the sidebar still has only the built pages and the page has one main button', async ({

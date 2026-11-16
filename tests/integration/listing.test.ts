@@ -350,6 +350,25 @@ describe('attention and the next meeting', () => {
     ).toBe(next.id);
   });
 
+  it('lists the next three open meetings, soonest first, starting with the next one', async () => {
+    const { meetings } = await setup();
+    const before = await meetings.summary();
+    expect(before.upcoming).toHaveLength(3);
+    expect(before.upcoming[0]!.id).toBe(before.next!.id);
+    const open = (await meetings.list({ scope: 'upcoming' })).filter((m) =>
+      ['Scheduled', 'Rescheduled'].includes(String(m.values.meeting_status)),
+    );
+    expect(before.upcoming.map((m) => m.id)).toEqual(open.slice(0, 3).map((m) => m.id));
+
+    // A cancelled one drops out and the fourth moves up.
+    const second = before.upcoming[1]!;
+    await meetings.setStatus(second.id, 'Cancelled', second.rev, dad);
+    const after = await meetings.summary();
+    expect(after.upcoming.map((m) => m.id)).toEqual(
+      [open[0]!, open[2]!, open[3]!].map((m) => m.id),
+    );
+  });
+
   it('counts meetings with a required detail missing, and cases waiting for a next date', async () => {
     const { f, meetings } = await setup();
     expect(await meetings.summary()).toMatchObject({ incomplete: 0, waiting: 0 });

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Meetings Manager",
+    "appName": "Personal Manager",
     "skipToContent": "Skip to content",
     "close": "Close",
     "cancel": "Cancel",
@@ -31,9 +31,13 @@
   },
   "topbar": {
     "textSize": "Text size",
+    "textSizeSmallest": "Smallest text size",
+    "textSizeSmaller": "Smaller text size",
     "textSizeNormal": "Normal text size",
     "textSizeLarge": "Larger text size",
     "textSizeLargest": "Largest text size",
+    "sizeSmallest": "A−−",
+    "sizeSmaller": "A−",
     "sizeNormal": "A",
     "sizeLarge": "A+",
     "sizeLargest": "A++",
@@ -51,7 +55,7 @@
   "dashboard": {
     "title": "Your meetings",
     "loading": "Loading your meetings…",
-    "nextTitle": "Next meeting",
+    "nextTitle": "{count, plural, one {Next meeting} other {Next # meetings}}",
     "noUpcoming": "No upcoming meetings.",
     "open": "Open",
     "join": "Join",
@@ -399,7 +403,7 @@
     "dialogConfirm": "Delete"
   },
   "login": {
-    "title": "Meetings Manager",
+    "title": "Personal Manager",
     "intro": "Your meetings, reminders and documents in one place. Sign in with your Google account to begin.",
     "signIn": "Sign in with Google",
     "differentAccount": "Use a different account",
@@ -656,9 +660,9 @@
     "notFoundBody": "The address may be old or mistyped."
   },
   "about": {
-    "title": "Meetings Manager",
+    "title": "Personal Manager",
     "description": "Keep meetings, reminders, documents and next dates in one place, stored in your own Google account.",
-    "lead": "Meetings Manager is a simple web app for keeping meetings, reminders, documents and next dates in one place. It is made to be easy to read and easy to tap, with large text and clear buttons.",
+    "lead": "Personal Manager is a simple web app for keeping meetings, reminders, documents and next dates in one place. It is made to be easy to read and easy to tap, with large text and clear buttons.",
     "whatTitle": "What it does",
     "what1": "Keeps a list and a calendar view of your meetings, with notes and next dates.",
     "what2": "Adds each meeting to your <b>Google Calendar</b>, with reminders that reach your phone.",
@@ -671,9 +675,9 @@
   },
   "privacy": {
     "title": "Privacy policy",
-    "description": "What Meetings Manager does with your Google data.",
+    "description": "What Personal Manager does with your Google data.",
     "updated": "Last updated: {date}",
-    "intro": "Meetings Manager (“the app”) helps you keep meetings, reminders, documents and next dates in one place. This page explains what the app does with your information. In short: your data stays in your own Google account, and it is not sold, shared or used for advertising.",
+    "intro": "Personal Manager (“the app”) helps you keep meetings, reminders, documents and next dates in one place. This page explains what the app does with your information. In short: your data stays in your own Google account, and it is not sold, shared or used for advertising.",
     "accessTitle": "What the app accesses",
     "accessIntro": "When you sign in with Google, you give the app permission to use:",
     "access1": "<b>Your basic Google profile:</b> your email address and name, only to recognise who is signing in.",
