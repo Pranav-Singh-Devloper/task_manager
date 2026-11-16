@@ -14,6 +14,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
     // Everyone starts signed in through the mock Google flow. Login tests opt out.
     storageState: 'tests/e2e/.auth/state.json',
+    // Flows are checked on still screens, so nothing is caught half-way through an animation.
+    // tests/e2e/motion.spec.ts turns animations back on to check them.
+    reducedMotion: 'reduce',
   },
   projects: [
     { name: 'mobile', use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } } },

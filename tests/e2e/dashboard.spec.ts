@@ -56,7 +56,7 @@ test.describe('the top of the dashboard', () => {
         (els) =>
           els.filter(
             (e) =>
-              getComputedStyle(e).backgroundColor === 'rgb(30, 64, 175)' &&
+              getComputedStyle(e).backgroundColor === 'rgb(143, 56, 18)' &&
               (e as HTMLElement).offsetParent !== null,
           ).length,
       );

@@ -172,3 +172,22 @@ Run against the owner's own Google account in live mode. Test data (a calendar e
 ### Hosting
 
 The app is built to run as **one always-on Node process with a persistent disk** (SPEC §4.2, §14). That does not fit Vercel's serverless model, where the custom Express server cannot run, the sign-in file is not kept, the background jobs do not run, and the in-memory cache and undo links are lost between requests. See the README's deployment checklist for hosts that fit.
+
+## Design refresh: warm white look with animations (requested by the owner, 2026-11-16)
+
+The owner asked for a light, warm white look with animated text, backgrounds and hover effects from React Bits. This changes one rule in SPEC §3: "No animation beyond 150 ms fades" and the deep blue accent. Everything else in Rule Zero stays: the same layout, labelled buttons, tap sizes, text sizes and plain words.
+
+- **Colours.** Warm white page (`#fbf7f1`), cream cards, near-black warm text (15:1), muted text 8.5:1, and one deep terracotta accent (`#8f3812`, 7.2:1 on the page; white on it 7.7:1). Form borders stay at 4.5:1 or more. Headings use Fraunces (a warm serif); body text stays Noto Sans. High contrast still switches to pure black on white with 3 px borders, and also removes every shadow, glow and gradient.
+- **React Bits pieces** (copied into `components/bits/` from the registry, kept as published; the app only uses them through the small wrappers in `components/motion/`):
+  - *Grainient*: a slowly drifting, grainy warm gradient behind the dashboard greeting and the sign-in page. Text on it stays above 11:1.
+  - *SplitText*: each page heading's words rise into place once. The heading keeps its full text as its name for screen readers.
+  - *BlurText*: the line under the greeting and the sign-in introduction come into focus word by word.
+  - *ShinyText*: a slow warm sheen over the app's name in the sidebar.
+  - *SpotlightCard*: a soft warm light follows the pointer over the "Next meeting" card.
+  - *GlareHover*: a light streak across "+ New meeting" and "Sign in with Google" on hover.
+  - *ClickSpark*: a small burst of warm sparks where you click or tap.
+  - *FadeContent*: each new page fades in when you move between pages. The first page of a visit is shown at once, so the screen is never blank while the app starts.
+- **Hover effects** are plain CSS: buttons and choice chips lift by 1 px with a warm shadow.
+- **Animations can always be turned off.** Settings has an **Animations On/Off** switch (remembered on the device, like text size). Animations are also off when the device asks for reduced motion and when High contrast is on. When off, every effect shows its plain, still version.
+- **Tests.** The flow tests run with reduced motion so nothing is checked half-way through an animation. `tests/e2e/motion.spec.ts` turns animations on and checks the pages, heading names, axe and the Animations switch.
+- **Adding more React Bits pieces.** `components.json` lists the `@react-bits` registry, so the shadcn CLI or MCP server can fetch them. Copy the TS + Tailwind version into `components/bits/`, add the same three-line note at the top, and use it through a wrapper in `components/motion/` that checks `useMotion()`.

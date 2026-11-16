@@ -13,7 +13,10 @@ async function noHorizontalScroll(page: Page) {
 async function seriousViolations(page: Page) {
   // AG Grid (Admin) puts a tabindex inside a presentational wrapper. That is the library's own markup, so this one rule is
   // skipped on a page with a grid. Everything else is still checked.
-  const hasGrid = (await page.locator('.ag-root').count()) > 0;
+  // The grid can appear a moment after the page, so every Admin page counts as a page with a grid.
+  const hasGrid =
+    new URL(page.url()).pathname.startsWith('/admin') ||
+    (await page.locator('.ag-root').count()) > 0;
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .disableRules(hasGrid ? ['aria-required-children'] : [])
@@ -126,8 +129,9 @@ test.describe('readability', () => {
   test('A+ scales to 125%', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /^A\+ / }).click();
-    const size = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
-    expect(size).toBe(22.5);
+    await expect
+      .poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)))
+      .toBe(22.5);
     await expect(page.getByRole('button', { name: /^A\+ / })).toHaveAttribute(
       'aria-pressed',
       'true',

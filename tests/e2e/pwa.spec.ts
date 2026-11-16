@@ -6,7 +6,7 @@ test.describe('home-screen app', () => {
     const manifest = await anon.get('/manifest.webmanifest');
     expect(manifest.status()).toBe(200);
     const m = await manifest.json();
-    expect(m).toMatchObject({ display: 'standalone', start_url: '/', theme_color: '#1e40af' });
+    expect(m).toMatchObject({ display: 'standalone', start_url: '/', theme_color: '#8f3812' });
     expect(m.icons.map((i: { sizes: string }) => i.sizes)).toEqual(
       expect.arrayContaining(['192x192', '512x512']),
     );

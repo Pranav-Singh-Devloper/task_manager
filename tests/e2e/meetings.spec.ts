@@ -241,7 +241,7 @@ test.describe('the meeting page', () => {
     const done = page.getByRole('link', { name: 'Mark as done' });
     const bg = (l: typeof reschedule) => l.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(await bg(done)).not.toBe(await bg(reschedule));
-    expect(await bg(done)).toBe('rgb(30, 64, 175)');
+    expect(await bg(done)).toBe('rgb(143, 56, 18)');
   });
 
   test('Edit changes a field, keeps the rest, and can be undone', async ({ page }) => {

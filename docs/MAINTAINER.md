@@ -53,6 +53,10 @@ Copy the `DATA_DIR` folder to the new host, or leave it behind. Both are safe: w
 
 The owner or you can open the Google Sheet and edit it. Sorting, typed dates, and rows typed by hand are all tolerated: a hand-typed row with a readable date becomes a meeting (and goes onto the calendar). A date changed in the Sheet is noticed on the next refresh and recorded as a reschedule. Do not delete the hidden `_system` tab or rename the header cells of the config tabs.
 
+## Animations and the warm look
+
+The animated pieces come from React Bits and live in `components/bits/`, kept as published. The app uses them only through `components/motion/`, where each wrapper checks `useMotion()` and shows a plain, still version when animations are off (the Settings switch, High contrast, or a device set to reduce motion). Colours are the tokens at the top of `app/globals.css`. To add another React Bits piece, see the end of the design entry in `DECISIONS.md`.
+
 ## Things only a person with the real Google account can check
 
 These were built against the same interfaces the mock uses, and need one real run:
