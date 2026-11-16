@@ -29,13 +29,16 @@ export function contentSecurityPolicy(nonce: string, dev: boolean): string {
   ].join('; ');
 }
 
+const PUBLIC_PATHS = ['/login', '/about', '/privacy'];
+
 /** Sends signed-out visitors to /login and keeps the 30-day session sliding (Next's "middleware", renamed proxy in Next 16). */
 export async function proxy(req: NextRequest) {
   const secret = process.env.SESSION_SECRET || DEV_SESSION_SECRET;
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value, secret);
   const { pathname, searchParams } = req.nextUrl;
 
-  if (!session && pathname !== '/login') {
+  // The login page and the two public pages Google asks for (home page, privacy policy) need no sign-in.
+  if (!session && !PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
   // A signed-in person has no reason to see the login page, unless they were just sent back with a message.

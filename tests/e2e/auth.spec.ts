@@ -52,6 +52,38 @@ test.describe('signed out', () => {
     ).toEqual([]);
   });
 
+  test('the home page and privacy policy open without signing in, and are accessible', async ({
+    page,
+  }) => {
+    for (const [path, heading] of [
+      ['/about', 'Meetings Manager'],
+      ['/privacy', 'Privacy policy'],
+    ]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      expect(
+        results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical'),
+      ).toEqual([]);
+    }
+    await expect(page.getByText('Limited Use requirements')).toBeVisible();
+  });
+
+  test('the login page links to the home page and the privacy policy', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+    await expect(page.getByRole('link', { name: 'About this app' })).toHaveAttribute(
+      'href',
+      '/about',
+    );
+  });
+
   test('text size and contrast work on the login page too', async ({ page }) => {
     await page
       .context()

@@ -51,6 +51,14 @@ export default async function LoginPage({
           {t('differentAccount')}
         </a>
       )}
+      <p className="flex flex-wrap gap-x-6 gap-y-2 text-muted">
+        <a href="/about" className="underline">
+          {t('aboutLink')}
+        </a>
+        <a href="/privacy" className="underline">
+          {t('privacyLink')}
+        </a>
+      </p>
     </main>
   );
 }

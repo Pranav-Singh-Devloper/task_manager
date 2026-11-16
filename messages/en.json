@@ -402,7 +402,9 @@
     "missing_scope": "The app needs permission to use your Google Calendar and Drive. Please sign in again and leave both boxes ticked.",
     "setup_failed": "We couldn't finish setting up your database. Nothing was lost. Please try again in a minute.",
     "cancelled": "Sign-in was cancelled. You can try again whenever you are ready.",
-    "try_again": "Something went wrong while signing in. Please try again."
+    "try_again": "Something went wrong while signing in. Please try again.",
+    "aboutLink": "About this app",
+    "privacyLink": "Privacy policy"
   },
   "banner": {
     "signInAgain": "Please sign in with Google again.",
@@ -646,5 +648,54 @@
     "home": "Go to my meetings",
     "notFoundTitle": "We couldn't find that page",
     "notFoundBody": "The address may be old or mistyped."
+  },
+  "about": {
+    "title": "Meetings Manager",
+    "description": "Keep meetings, reminders, documents and next dates in one place, stored in your own Google account.",
+    "lead": "Meetings Manager is a simple web app for keeping meetings, reminders, documents and next dates in one place. It is made to be easy to read and easy to tap, with large text and clear buttons.",
+    "whatTitle": "What it does",
+    "what1": "Keeps a list and a calendar view of your meetings, with notes and next dates.",
+    "what2": "Adds each meeting to your <b>Google Calendar</b>, with reminders that reach your phone.",
+    "what3": "Stores your meeting records in a spreadsheet, and the documents you attach in a folder, in your own <b>Google Drive</b>.",
+    "dataTitle": "Your data stays with you",
+    "dataBody": "The app keeps your records in your own Google account. It can only see the spreadsheet and folder it creates there, not the rest of your Drive. Read the <policy>privacy policy</policy> for the details.",
+    "whoTitle": "Who can use it",
+    "whoBody": "Each copy of the app serves one Google account, chosen by the person who runs it. You sign in with Google, and the app asks permission to use Google Calendar and Google Drive on your behalf.",
+    "cta": "Sign in with Google"
+  },
+  "privacy": {
+    "title": "Privacy policy",
+    "description": "What Meetings Manager does with your Google data.",
+    "updated": "Last updated: {date}",
+    "intro": "Meetings Manager (“the app”) helps you keep meetings, reminders, documents and next dates in one place. This page explains what the app does with your information. In short: your data stays in your own Google account, and it is not sold, shared or used for advertising.",
+    "accessTitle": "What the app accesses",
+    "accessIntro": "When you sign in with Google, you give the app permission to use:",
+    "access1": "<b>Your basic Google profile:</b> your email address and name, only to recognise who is signing in.",
+    "access2": "<b>Google Calendar (events):</b> to create, update and delete the calendar events for the meetings you enter in the app, including their reminders. The app uses this only for those meetings.",
+    "access3": "<b>Google Drive (files the app creates):</b> to create and use one spreadsheet and one folder, and to store the documents you attach to meetings. This permission only lets the app see files and folders that it created. It cannot see or change the other files in your Drive.",
+    "storedTitle": "Where your information is stored",
+    "stored1": "<b>In your Google account.</b> Your meeting records live in a spreadsheet called “Meetings Manager — Database”, your documents in a folder called “Meetings Manager”, and your meetings on your Google Calendar. You own all of it and can open it directly in Google at any time.",
+    "stored2": "<b>On the app’s server.</b> The server keeps a Google sign-in token, stored encrypted, so the app can keep working with your calendar and Drive between visits. It also keeps short-lived working data in memory, and basic technical logs, such as errors, to keep the app running.",
+    "stored3": "<b>In your browser.</b> A signed cookie that keeps you signed in for up to 30 days, and cookies that remember your text size, contrast and motion settings. These are not used for tracking or advertising.",
+    "usedTitle": "How your information is used",
+    "usedBody": "Your information is used only to provide the app’s features that you can see: showing your meetings, putting them on your calendar, sending reminders, and storing your documents. It is not sold, rented or shared with anyone, it is not used for advertising, and no person reads your data except where you share it yourself or where the law requires.",
+    "googleTitle": "Google API Services User Data Policy",
+    "googleBody": "The app’s use and transfer of information received from Google APIs to any other app will adhere to the <policy>Google API Services User Data Policy</policy>, including the Limited Use requirements.",
+    "safeTitle": "Keeping it safe",
+    "safeBody": "The app is served over HTTPS, the stored Google token is encrypted, and your data is kept in your own Google account, which has Google’s own protections.",
+    "choicesTitle": "Your choices and deleting your data",
+    "choice1": "<b>Stop access at any time:</b> remove the app at <perms>myaccount.google.com/permissions</perms>. The app can then no longer use your calendar or Drive.",
+    "choice2": "<b>Delete your records:</b> delete the “Meetings Manager — Database” spreadsheet, the “Meetings Manager” folder and the calendar events from your own Google account.",
+    "choice3": "<b>Delete what the server holds:</b> ask the person who runs the app to remove the stored sign-in token and logs, using the contact below.",
+    "changesTitle": "Changes to this policy",
+    "changesBody": "If this policy changes, the new version will be posted on this page with a new date at the top.",
+    "contactTitle": "Contact",
+    "contactWith": "Questions or requests about your data: <mail>{email}</mail>.",
+    "contactWithout": "For questions or requests about your data, contact the person who runs this app."
+  },
+  "publicNav": {
+    "home": "Home",
+    "privacy": "Privacy policy",
+    "signIn": "Sign in"
   }
 }
