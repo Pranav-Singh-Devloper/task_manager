@@ -12,6 +12,8 @@ export default defineConfig([
     'next-env.d.ts',
     'playwright-report/**',
     'test-results/**',
+    // Vendored React Bits components, kept as published (see the note at the top of each file).
+    'components/bits/**',
   ]),
   {
     // Rule Zero: components contain no hard-coded user-facing text.
