@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Button, buttonClasses, Card, CardTitle, Chip, Segmented, useToast } from '@/components/ui';
+import { GlowCard } from '@/components/motion';
+import { Button, buttonClasses, CardTitle, Chip, Segmented, useToast } from '@/components/ui';
 import { dateText, timeText } from '@/components/meeting/format';
 import { api } from '@/lib/api';
 import { isFiltered, toApiQuery, type Tab, type View } from '@/lib/dashboard-params';
@@ -19,6 +20,7 @@ import { MeetingCards } from './meeting-cards';
 import { MeetingTable } from './meeting-table';
 import { CategoryChip, StatusCell, isWebLink } from './row-bits';
 import { useDashboard } from './use-dashboard';
+import { Welcome } from './welcome';
 
 // The calendar is large and only needed when it is chosen, so it loads then.
 function CalendarLoading() {
@@ -163,15 +165,15 @@ function Dashboard({ meta }: { meta: Meta }) {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
-      <h1>{t('title')}</h1>
+      <Welcome settings={settings} />
 
-      <Card>
+      <GlowCard>
         <CardTitle>{t('nextTitle')}</CardTitle>
         {summary.isPending ? (
           <p>{t('loading')}</p>
         ) : next ? (
           <div className="flex flex-col gap-3">
-            <p className="text-2xl font-bold">
+            <p className="font-display text-3xl font-semibold text-accent">
               {typeof next.values.date === 'string' ? dateText(next.values.date, settings) : ''} ·{' '}
               {typeof next.values.start_time === 'string'
                 ? timeText(next.values.start_time, settings)
@@ -206,7 +208,7 @@ function Dashboard({ meta }: { meta: Meta }) {
             </Link>
           </div>
         )}
-      </Card>
+      </GlowCard>
 
       {/* One plain sentence for each thing that needs a look, each with a button (§7.2). */}
       {!attention &&
@@ -214,7 +216,7 @@ function Dashboard({ meta }: { meta: Meta }) {
         (summary.data.incomplete > 0 || summary.data.waiting > 0 || summary.data.unsynced > 0) && (
           <div role="status" className="flex flex-col gap-2">
             {summary.data.incomplete > 0 && (
-              <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
+              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-3 pl-5 shadow-sm">
                 <span className="font-semibold">
                   {t('attentionIncomplete', { count: summary.data.incomplete })}
                 </span>
@@ -222,7 +224,7 @@ function Dashboard({ meta }: { meta: Meta }) {
               </p>
             )}
             {summary.data.unsynced > 0 && (
-              <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
+              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-3 pl-5 shadow-sm">
                 <span className="font-semibold">
                   {t('attentionUnsynced', { count: summary.data.unsynced })}
                 </span>
@@ -232,7 +234,7 @@ function Dashboard({ meta }: { meta: Meta }) {
               </p>
             )}
             {summary.data.waiting > 0 && (
-              <p className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3">
+              <p className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-3 pl-5 shadow-sm">
                 <span className="font-semibold">
                   {t('attentionWaiting', { count: summary.data.waiting })}
                 </span>
@@ -307,7 +309,7 @@ function Dashboard({ meta }: { meta: Meta }) {
                 {columnsOpen ? t('hideColumns') : t('chooseColumns')}
               </Button>
               {columnsOpen && (
-                <fieldset className="flex flex-col gap-2 rounded-xl border-ui border-line bg-surface p-4">
+                <fieldset className="flex flex-col gap-2 rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm">
                   <legend className="px-2 font-semibold">{t('chooseColumns')}</legend>
                   <p className="text-muted">{t('columnsHint')}</p>
                   {all

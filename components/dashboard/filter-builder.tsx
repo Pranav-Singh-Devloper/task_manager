@@ -145,7 +145,7 @@ export function FilterBuilder({ meta, category, onAdd }: Props) {
   return (
     <section
       aria-labelledby="builder-title"
-      className="flex flex-col gap-4 rounded-xl border-ui border-line bg-surface p-5"
+      className="flex flex-col gap-4 rounded-2xl border-ui border-soft bg-surface p-5 shadow-sm"
     >
       <h2 id="builder-title" className="text-xl">
         {t('builderTitle')}

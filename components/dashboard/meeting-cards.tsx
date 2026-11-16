@@ -43,7 +43,7 @@ export function MeetingCards({
           aria-label={s.date ? dateText(s.date, meta.settings) : undefined}
           className="flex flex-col gap-3"
         >
-          {s.date && <h2 className="text-xl">{dateText(s.date, meta.settings)}</h2>}
+          {s.date && <h2 className="text-xl text-muted">{dateText(s.date, meta.settings)}</h2>}
           <ul className="flex flex-col gap-3">
             {s.items.map((m) => {
               const date = typeof m.values.date === 'string' ? m.values.date : null;
@@ -54,9 +54,9 @@ export function MeetingCards({
               return (
                 <li
                   key={m.id}
-                  className="flex flex-col gap-3 rounded-xl border-ui border-line bg-surface p-4"
+                  className="flex flex-col gap-3 rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm"
                 >
-                  <p className="text-2xl font-bold">
+                  <p className="font-display text-2xl font-semibold text-accent">
                     {!grouped && date ? `${dateText(date, meta.settings)} · ` : ''}
                     {start}
                   </p>

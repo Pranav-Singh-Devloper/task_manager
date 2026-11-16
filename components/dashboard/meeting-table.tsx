@@ -110,11 +110,11 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
 
   // `relative` keeps the hidden screen-reader text inside the scrolling box instead of stretching the page.
   return (
-    <div className="relative overflow-x-auto rounded-xl border-ui border-line bg-surface">
+    <div className="relative overflow-x-auto rounded-2xl border-ui border-soft bg-surface shadow-sm">
       <table className="w-full border-collapse text-left">
         <caption className="sr-only">{t('tableCaption')}</caption>
         <thead>
-          <tr className="border-b-ui border-line">
+          <tr className="border-b-ui border-line bg-sunken">
             {columns.map((col) => {
               const active = Boolean(col.sortKey) && (sort || 'date') === col.sortKey;
               return (
@@ -164,7 +164,7 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
                 <th
                   colSpan={width}
                   scope="colgroup"
-                  className="bg-page px-4 py-3 text-lg font-semibold"
+                  className="bg-page px-4 py-3 font-display text-lg font-semibold text-muted"
                 >
                   {section.date ? dateText(section.date, meta.settings) : t('colDate')}
                 </th>
@@ -173,7 +173,7 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
             {section.rows.map((row) => (
               <tr
                 key={row.id}
-                className="cursor-pointer border-t-ui border-soft align-top hover:bg-page"
+                className="cursor-pointer border-t-ui border-soft align-top transition-colors hover:bg-sunken"
                 onClick={(e) => {
                   // A click anywhere on the row opens it, unless it was on a link or button of its own.
                   if ((e.target as HTMLElement).closest('a, button')) return;

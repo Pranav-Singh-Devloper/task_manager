@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui';
 import { dateText, fullDate, stampText, timeText, valueText } from './format';
 import { FilesField } from './files-field';
 import { StatusChip } from './status-chip';
+import { PageTitle } from '@/components/motion';
 
 const CORE = new Set([
   'sr_no',
@@ -228,7 +229,7 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
   return (
     <div className="flex flex-col gap-8 pb-8">
       <div className="flex flex-col gap-3">
-        <h1>{meeting.title}</h1>
+        <PageTitle>{meeting.title}</PageTitle>
         {date && start && (
           <p className="text-2xl font-semibold">
             {dateText(date, settings)} ·{' '}
@@ -252,12 +253,12 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
       </div>
 
       {deleted && (
-        <p role="status" className="rounded-xl border-ui border-line bg-surface p-4 font-semibold">
+        <p role="status" className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4 font-semibold">
           {t('trashNotice')}
         </p>
       )}
       {!deleted && meeting.incomplete.length > 0 && (
-        <p role="status" className="rounded-xl border-ui border-line bg-surface p-4">
+        <p role="status" className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4">
           {t('incompleteNotice')}
         </p>
       )}
@@ -432,7 +433,7 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
         )}
       </Card>
 
-      <details className="rounded-xl border-ui border-line bg-surface p-5">
+      <details className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-5">
         <summary className="min-h-tap cursor-pointer text-2xl font-semibold">
           {t('changeHistory')}
         </summary>

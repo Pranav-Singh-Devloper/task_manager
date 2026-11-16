@@ -17,6 +17,7 @@ import {
 } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { useMeta, type Meta } from '@/lib/queries';
+import { PageTitle } from '@/components/motion';
 
 const ZONES = [
   'Asia/Kolkata',
@@ -109,12 +110,12 @@ function Form({ meta }: { meta: Meta }) {
         void save();
       }}
     >
-      <h1>{t('title')}</h1>
+      <PageTitle>{t('title')}</PageTitle>
 
       <Card>
         <CardTitle>{t('lookTitle')}</CardTitle>
         <p className="mb-3">{t('lookBody')}</p>
-        <TopBarControls />
+        <TopBarControls withMotion />
       </Card>
 
       <Card>

@@ -12,6 +12,7 @@ import { newId } from '@/shared/ids';
 import type { Meeting } from '@/shared/meeting';
 import { dateText, timeText } from './format';
 import { lengthOf, WhenFields, type When } from './when-fields';
+import { PageTitle } from '@/components/motion';
 
 type Answer = 'yes' | 'no' | 'later' | '';
 type Failure = { kind: 'network' | 'text' | 'exists'; text: string; existingId?: string };
@@ -145,10 +146,10 @@ function Form({
         : '';
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
-        <h1>{nextOnly ? t('scheduleNextTitle') : t('title')}</h1>
+        <PageTitle>{nextOnly ? t('scheduleNextTitle') : t('title')}</PageTitle>
         <div
           role="status"
-          className="flex flex-col gap-4 rounded-xl border-ui border-line bg-surface p-5"
+          className="flex flex-col gap-4 rounded-2xl border-ui border-soft bg-surface shadow-sm p-5"
         >
           <p className="text-xl font-semibold">
             {undone
@@ -193,7 +194,7 @@ function Form({
       className="mx-auto flex max-w-2xl flex-col gap-6 pb-32"
     >
       <div>
-        <h1 className="mb-2">{nextOnly ? t('scheduleNextTitle') : t('title')}</h1>
+        <PageTitle className="mb-2">{nextOnly ? t('scheduleNextTitle') : t('title')}</PageTitle>
         <p className="text-xl font-semibold">{t('for', { title: meeting.title })}</p>
       </div>
 
@@ -290,7 +291,7 @@ function Form({
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t-ui border-line bg-surface md:left-[240px]">
+      <div className="glass fixed inset-x-0 bottom-0 z-30 border-t-ui border-soft shadow-lg md:left-[240px]">
         <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-3 px-4 py-3 md:px-0">
           <Button type="submit" variant="primary" size="lg" disabled={saving}>
             {saving ? t('saving') : nextOnly ? t('scheduleNext') : t('save')}

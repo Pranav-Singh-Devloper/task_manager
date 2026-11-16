@@ -24,6 +24,7 @@ import { validateValues } from '@/shared/validation';
 import { FieldControl } from './field-control';
 import { FilesField, type PendingFile } from './files-field';
 import { useDraft } from './use-draft';
+import { PageTitle } from '@/components/motion';
 
 /** Fields that have their own place in the form, so they are not repeated under "About this meeting". */
 const OWN_PLACE = new Set([
@@ -325,7 +326,7 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
       className="mx-auto flex max-w-2xl flex-col gap-8 pb-32"
     >
       <div>
-        <h1 className="mb-2">{mode === 'edit' ? nav('editTitle') : nav('title')}</h1>
+        <PageTitle className="mb-2">{mode === 'edit' ? nav('editTitle') : nav('title')}</PageTitle>
         <p className="flex flex-wrap items-center gap-3">
           <span className="font-semibold">{nav('kind', { name: category.name })}</span>
           {mode === 'create' && (
@@ -343,7 +344,7 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
       {draft.pending && (
         <div
           role="status"
-          className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-4"
+          className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
         >
           <p className="flex-1 font-semibold">{t('draftFound')}</p>
           <Button variant="primary" onClick={() => restore(draft.pending as Draft)}>
@@ -565,7 +566,7 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
         </section>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t-ui border-line bg-surface md:left-[240px]">
+      <div className="glass fixed inset-x-0 bottom-0 z-30 border-t-ui border-soft shadow-lg md:left-[240px]">
         <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-3 px-4 py-3 md:px-0">
           <Button type="submit" variant="primary" size="lg" disabled={saving}>
             {saving ? t('saving') : mode === 'edit' ? t('saveChanges') : t('save')}

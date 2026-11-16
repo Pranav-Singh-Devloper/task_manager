@@ -48,7 +48,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
       {mobile && !continued ? (
         <div
           role="status"
-          className="flex flex-col items-start gap-3 rounded-xl border-ui border-line bg-surface p-4"
+          className="flex flex-col items-start gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
         >
           <p className="font-semibold">{t('computerNotice')}</p>
           <Button variant="primary" onClick={() => setContinued(true)}>

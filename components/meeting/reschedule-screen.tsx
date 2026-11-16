@@ -13,6 +13,7 @@ import { addMinutesToTime, sameWeekdayAfter, shiftDate, todayIn } from '@/shared
 import type { Meeting } from '@/shared/meeting';
 import { dateText, timeText } from './format';
 import { lengthOf, WhenFields, type When } from './when-fields';
+import { PageTitle } from '@/components/motion';
 
 /** /meetings/[id]/reschedule: a short full page. Quick choices fill the fields in; nothing is saved until Save new time. */
 export function RescheduleScreen({ id, returnTo }: { id: string; returnTo?: string }) {
@@ -113,7 +114,7 @@ function Form({ meeting, meta, returnTo }: { meeting: Meeting; meta: Meta; retur
       className="mx-auto flex max-w-2xl flex-col gap-6 pb-32"
     >
       <div>
-        <h1 className="mb-2">{t('title')}</h1>
+        <PageTitle className="mb-2">{t('title')}</PageTitle>
         <p className="mb-1 text-xl font-semibold">{meeting.title}</p>
         <p className="text-muted">{t('current', { when: nowText })}</p>
         <p className="mt-2">{t('intro')}</p>
@@ -172,7 +173,7 @@ function Form({ meeting, meta, returnTo }: { meeting: Meeting; meta: Meta; retur
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t-ui border-line bg-surface md:left-[240px]">
+      <div className="glass fixed inset-x-0 bottom-0 z-30 border-t-ui border-soft shadow-lg md:left-[240px]">
         <div className="mx-auto flex max-w-2xl flex-wrap items-center gap-3 px-4 py-3 md:px-0">
           <Button type="submit" variant="primary" size="lg" disabled={saving}>
             {saving ? t('saving') : t('save')}

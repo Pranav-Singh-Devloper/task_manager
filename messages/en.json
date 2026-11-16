@@ -41,7 +41,8 @@
     "on": "On",
     "off": "Off",
     "signedInAs": "Signed in as {name}",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "animations": "Animations"
   },
   "combobox": {
     "add": "Add “{value}”",
@@ -160,7 +161,12 @@
     "attentionUnsynced": "{count, plural, one {1 meeting isn't on your calendar yet.} other {# meetings aren't on your calendar yet.}}",
     "fixNow": "Fix now",
     "fixedCalendar": "Everything is on your calendar now.",
-    "stillNotOnCalendar": "We still couldn't reach your calendar. We will keep trying."
+    "stillNotOnCalendar": "We still couldn't reach your calendar. We will keep trying.",
+    "greetMorning": "Good morning",
+    "greetAfternoon": "Good afternoon",
+    "greetEvening": "Good evening",
+    "greetName": "{greeting}, {name}",
+    "todayIs": "Today is {date}."
   },
   "admin": {
     "title": "Admin",
@@ -324,7 +330,7 @@
     "loading": "Loading…",
     "loadFailed": "We couldn't load your settings. Please try again.",
     "lookTitle": "Text size and contrast",
-    "lookBody": "These are remembered on this device only.",
+    "lookBody": "These are remembered on this device only. Turn Animations off for a calm, still screen.",
     "timeTitle": "Time",
     "timezone": "Time zone",
     "timeFormat": "Show times as",

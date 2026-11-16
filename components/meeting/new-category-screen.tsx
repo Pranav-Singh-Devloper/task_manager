@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Button, buttonClasses, Chip, FormField, Input, RadioChips } from '@/components/ui';
 import { ApiError, NetworkError, api } from '@/lib/api';
 import { CATEGORY_PALETTE } from '@/shared/seed';
+import { PageTitle } from '@/components/motion';
 
 /** The "+ Add new category" page: a name and a colour. A full page, never a popup. */
 export function NewCategoryScreen() {
@@ -56,7 +57,7 @@ export function NewCategoryScreen() {
       className="flex max-w-xl flex-col gap-6 pb-8"
     >
       <div>
-        <h1 className="mb-2">{t('title')}</h1>
+        <PageTitle className="mb-2">{t('title')}</PageTitle>
         <p>{t('intro')}</p>
       </div>
       <FormField name="name" label={t('name')} required error={errors.name}>

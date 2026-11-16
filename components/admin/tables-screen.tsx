@@ -144,7 +144,7 @@ export function TablesScreen() {
       {table && !table.editable && (
         <p
           role="note"
-          className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3"
+          className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-3"
         >
           <span className="font-semibold">
             {table.kind === 'config' ? t('readOnlyConfig') : t('readOnlyLog')}

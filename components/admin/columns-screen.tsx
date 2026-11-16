@@ -119,7 +119,7 @@ function Manager({
           {visible.map((f, i) => (
             <li
               key={f.key}
-              className="flex flex-col gap-3 rounded-xl border-ui border-line bg-surface p-4"
+              className="flex flex-col gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-lg font-semibold">{f.label}</span>
@@ -192,7 +192,7 @@ function Manager({
               {hidden.map((f) => (
                 <li
                   key={f.key}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-4"
+                  className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
                 >
                   <span className="flex-1 text-lg font-semibold">{f.label}</span>
                   <Button
@@ -291,7 +291,7 @@ function CategorySettings({
   }
 
   return (
-    <details className="rounded-xl border-ui border-line bg-surface p-5">
+    <details className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-5">
       <summary className="min-h-tap cursor-pointer text-2xl font-semibold">
         {t('categorySettings', { name: category.name })}
       </summary>

@@ -46,11 +46,11 @@ const theme = themeQuartz.withParams({
   fontSize: 16,
   rowHeight: 48,
   headerHeight: 52,
-  accentColor: '#1e40af',
-  backgroundColor: '#ffffff',
-  foregroundColor: '#0b1220',
-  borderColor: '#64748b',
-  headerBackgroundColor: '#f6f7f9',
+  accentColor: '#8f3812',
+  backgroundColor: '#fffdf9',
+  foregroundColor: '#2a1f16',
+  borderColor: '#76614f',
+  headerBackgroundColor: '#f4ece1',
 });
 
 const EDITORS: Record<string, Partial<ColDef>> = {

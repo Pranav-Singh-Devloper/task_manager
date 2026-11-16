@@ -62,13 +62,13 @@ export function BackupsScreen() {
       ) : !list.data || !meta.data ? (
         <p className="font-semibold">{t('loadFailed')}</p>
       ) : list.data.backups.length === 0 ? (
-        <p className="rounded-xl border-ui border-line bg-surface p-4">{t('noBackups')}</p>
+        <p className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4">{t('noBackups')}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {list.data.backups.map((b) => (
             <li
               key={b.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-4"
+              className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
             >
               <span className="flex-1">
                 <span className="block font-semibold">{b.name}</span>

@@ -17,15 +17,21 @@ const SIZES: {
 
 const toggleClasses = (on: boolean) =>
   clsx(
-    'inline-flex min-h-tap min-w-tap items-center justify-center gap-2 rounded-lg border-ui px-3 text-base font-semibold',
-    on ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface text-ink',
+    'lift inline-flex min-h-tap min-w-tap items-center justify-center gap-2 rounded-xl border-ui px-3 text-base font-semibold',
+    on
+      ? 'btn-primary border-accent bg-accent text-accent-ink'
+      : 'border-line bg-surface text-ink shadow-sm hover:bg-sunken',
   );
 
-/** A / A+ / A++ and the High contrast switch. Both are remembered on this device. */
-export function TopBarControls() {
+/**
+ * A / A+ / A++ and the High contrast switch, remembered on this device. Settings also shows the Animations switch
+ * (`withMotion`); the top bar leaves it out to stay short.
+ */
+export function TopBarControls({ withMotion = false }: { withMotion?: boolean }) {
   const t = useTranslations('topbar');
-  const { textSize, setTextSize, contrast, setContrast } = usePreferences();
+  const { textSize, setTextSize, contrast, setContrast, motion, setMotion } = usePreferences();
   const high = contrast === 'high';
+  const moving = motion === 'on';
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -52,6 +58,17 @@ export function TopBarControls() {
         {t('highContrast')}
         <span aria-hidden="true">{high ? t('on') : t('off')}</span>
       </button>
+      {withMotion && (
+        <button
+          type="button"
+          aria-pressed={moving}
+          onClick={() => setMotion(moving ? 'off' : 'on')}
+          className={toggleClasses(moving)}
+        >
+          {t('animations')}
+          <span aria-hidden="true">{moving ? t('on') : t('off')}</span>
+        </button>
+      )}
     </div>
   );
 }

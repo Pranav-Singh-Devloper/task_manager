@@ -139,7 +139,7 @@ export function FilesField({
           {saved.map((f) => (
             <li
               key={f.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3"
+              className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-3"
             >
               <span className="min-w-0 flex-1 break-words font-semibold">
                 {f.name}
@@ -165,7 +165,7 @@ export function FilesField({
           {pending.map((p) => (
             <li
               key={p.id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3"
+              className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-3"
             >
               <span className="min-w-0 flex-1 break-words font-semibold">
                 {p.name}
@@ -182,7 +182,7 @@ export function FilesField({
           {uploading.map((u) => (
             <li
               key={u.key}
-              className="flex flex-wrap items-center gap-3 rounded-xl border-ui border-line bg-surface p-3"
+              className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-3"
             >
               <span className="min-w-0 flex-1 break-words font-semibold">
                 {u.name}

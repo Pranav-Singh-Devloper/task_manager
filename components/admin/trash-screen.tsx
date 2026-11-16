@@ -59,7 +59,7 @@ export function TrashScreen() {
         {message}
       </p>
       {trash.data.meetings.length === 0 ? (
-        <p className="rounded-xl border-ui border-line bg-surface p-4">{t('trashEmpty')}</p>
+        <p className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-4">{t('trashEmpty')}</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {trash.data.meetings.map((m) => {
@@ -67,7 +67,7 @@ export function TrashScreen() {
             return (
               <li
                 key={m.id}
-                className="flex flex-col gap-3 rounded-xl border-ui border-line bg-surface p-4"
+                className="flex flex-col gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
               >
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-lg font-semibold">{m.title}</span>
