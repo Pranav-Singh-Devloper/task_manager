@@ -1,0 +1,8 @@
+[Unit]
+Description=Update Meetings Manager to the newest published image
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mm/app/deploy/gcp/auto-update.sh

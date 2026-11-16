@@ -50,8 +50,15 @@ fi
 echo "DOMAIN=$DOMAIN" > .env.compose
 chmod 600 .env .env.compose
 
-echo "5/5  Starting (the first build takes several minutes)"
-docker compose --env-file .env.compose up -d --build
+echo "5/5  Starting (the image is built by GitHub and pulled here, because a small VM can't build it)"
+docker compose --env-file .env.compose pull app
+docker compose --env-file .env.compose up -d --no-build
+
+echo "     Turning on automatic updates (a push to main is deployed within a few minutes)"
+chmod +x auto-update.sh
+cp systemd/mm-update.service systemd/mm-update.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now mm-update.timer
 
 echo
 echo "Done. The app will be at:  https://$DOMAIN"

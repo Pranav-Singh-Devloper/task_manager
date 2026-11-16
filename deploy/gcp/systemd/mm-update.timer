@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for a new Meetings Manager image every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target
