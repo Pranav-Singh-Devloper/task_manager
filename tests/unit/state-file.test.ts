@@ -32,6 +32,31 @@ describe('FileStateStore', () => {
     expect(await fs.readdir(nested)).toEqual(['state.json']);
   });
 
+  it("starts again when the owner has changed, and keeps the old owner's file aside", async () => {
+    await new FileStateStore(dir, 'old@example.com').write({
+      jobs: {},
+      ownerEmail: 'old@example.com',
+      activeSpreadsheetId: 'old-sheet',
+      refreshTokenEnc: 'v1:old',
+    });
+    // Same owner (any letter case): read as usual.
+    expect((await new FileStateStore(dir, 'OLD@example.com').read())?.activeSpreadsheetId).toBe(
+      'old-sheet',
+    );
+    // A new owner: nothing carries over, so the old token and database are never used for them.
+    const store = new FileStateStore(dir, 'new@example.com');
+    expect(await store.read()).toBeNull();
+    expect(await store.read()).toBeNull();
+    const files = await fs.readdir(dir);
+    expect(files).not.toContain('state.json');
+    const aside = files.find((f) => f.startsWith('state.previous-owner-'));
+    expect(aside).toBeDefined();
+    const kept = JSON.parse(await fs.readFile(path.join(dir, aside!), 'utf8')) as {
+      activeSpreadsheetId: string;
+    };
+    expect(kept.activeSpreadsheetId).toBe('old-sheet');
+  });
+
   it('keeps the file private to the owner', async () => {
     await new FileStateStore(dir).write({ jobs: {} });
     const mode = (await fs.stat(path.join(dir, 'state.json'))).mode & 0o777;

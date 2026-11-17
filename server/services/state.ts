@@ -11,19 +11,37 @@ import type { AppState, StateStore } from './google/types';
 export class FileStateStore implements StateStore {
   private readonly file: string;
 
-  constructor(private readonly dir: string) {
+  /**
+   * `ownerEmail` is the owner the server is set up for (OWNER_EMAIL). When the file belongs to a different owner,
+   * because OWNER_EMAIL was changed, it is moved aside to `state.previous-owner-<time>.json` and the app starts
+   * again: the new owner signs in and gets a database in their own Drive. Putting the old file back and setting
+   * OWNER_EMAIL back returns to the previous owner's database.
+   */
+  constructor(
+    private readonly dir: string,
+    private readonly ownerEmail?: string,
+  ) {
     this.file = path.join(dir, 'state.json');
   }
 
   async read(): Promise<AppState | null> {
+    let state: Partial<AppState>;
     try {
       const parsed: unknown = JSON.parse(await fs.readFile(this.file, 'utf8'));
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
-      const state = parsed as Partial<AppState>;
-      return { ...state, jobs: state.jobs && typeof state.jobs === 'object' ? state.jobs : {} };
+      state = parsed as Partial<AppState>;
     } catch {
       return null;
     }
+    const owner = this.ownerEmail?.toLowerCase();
+    if (owner && typeof state.ownerEmail === 'string' && state.ownerEmail.toLowerCase() !== owner) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      await fs
+        .rename(this.file, path.join(this.dir, `state.previous-owner-${stamp}.json`))
+        .catch(() => undefined);
+      return null;
+    }
+    return { ...state, jobs: state.jobs && typeof state.jobs === 'object' ? state.jobs : {} };
   }
 
   async write(state: AppState): Promise<void> {

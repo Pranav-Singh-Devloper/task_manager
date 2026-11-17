@@ -25,7 +25,7 @@ export async function createGoogleServices(env: Env): Promise<GoogleSetup> {
     return { google: mock.services };
   }
 
-  const state = new FileStateStore(env.dataDir);
+  const state = new FileStateStore(env.dataDir, env.ownerEmail);
   const auth = new GoogleAuth(env, state);
   const ctx = { authClient: () => auth.ownerClient(), onInvalidGrant: () => auth.markInvalid() };
   return {

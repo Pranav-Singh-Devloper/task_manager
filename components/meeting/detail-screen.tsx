@@ -30,11 +30,14 @@ const CORE = new Set([
 /** Shown in the header or managed elsewhere, so not repeated in the list. */
 const HIDDEN_ROWS = new Set(['date', 'start_time', 'end_time', 'files']);
 
+/** Slightly tighter cards than elsewhere: this page shows a lot at once. */
+const CARD = '!p-4 md:!p-5';
+
 const isWebLink = (v: unknown): v is string => typeof v === 'string' && /^https?:\/\//i.test(v);
 
 function Row({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
   return (
-    <div className="grid gap-1 border-b-ui border-soft py-3 sm:grid-cols-[14rem_1fr] sm:gap-4">
+    <div className="grid gap-x-4 gap-y-0.5 border-b-ui border-soft py-2 last:border-b-0 sm:grid-cols-[minmax(7rem,11rem)_1fr]">
       <dt className="font-semibold">{label}</dt>
       <dd className="whitespace-pre-wrap break-words">
         {children}
@@ -204,7 +207,7 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
             href={raw}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-tap items-center underline"
+            className="inline-flex min-h-tap items-center break-all underline"
           >
             {raw}
           </a>
@@ -227,11 +230,11 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
   const specific = visible.filter((f) => !CORE.has(f.key));
 
   return (
-    <div className="flex flex-col gap-8 pb-8">
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4 pb-8">
+      <div className="flex flex-col gap-2">
         <PageTitle>{meeting.title}</PageTitle>
         {date && start && (
-          <p className="text-2xl font-semibold">
+          <p className="text-xl font-semibold">
             {dateText(date, settings)} ·{' '}
             {end
               ? t('to', { start: timeText(start, settings), end: timeText(end, settings) })
@@ -330,159 +333,166 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
         )}
       </div>
 
-      <Card>
-        <CardTitle>{t('aboutThis')}</CardTitle>
-        <dl>{rows(core)}</dl>
-        {specific.length > 0 && (
-          <>
-            <h3 className="mt-6 text-xl font-semibold">
-              {t('categoryDetails', { name: category?.name ?? '' })}
-            </h3>
-            <dl>{rows(specific)}</dl>
-          </>
-        )}
-      </Card>
+      {/* Two halves on a wide screen so nothing needs a long scroll: the meeting's details on the left, and files,
+          calendar, the series and history on the right. One column on a phone or tablet, in the same order. */}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <Card className={CARD}>
+          <CardTitle>{t('aboutThis')}</CardTitle>
+          <dl>{rows(core)}</dl>
+          {specific.length > 0 && (
+            <>
+              <h3 className="mt-4 text-xl font-semibold">
+                {t('categoryDetails', { name: category?.name ?? '' })}
+              </h3>
+              <dl>{rows(specific)}</dl>
+            </>
+          )}
+        </Card>
 
-      <Card>
-        <CardTitle>{t('files')}</CardTitle>
-        <FilesField
-          meetingId={meeting.id}
-          category={meeting.category_slug}
-          saved={meeting.files}
-          onSavedChange={() => void client.invalidateQueries()}
-          attachNow
-        />
-      </Card>
+        <div className="flex flex-col gap-4">
+          <Card className={CARD}>
+            <CardTitle>{t('files')}</CardTitle>
+            <FilesField
+              meetingId={meeting.id}
+              category={meeting.category_slug}
+              saved={meeting.files}
+              onSavedChange={() => void client.invalidateQueries()}
+              attachNow
+            />
+          </Card>
 
-      <Card>
-        <CardTitle>{t('calendar')}</CardTitle>
-        {calendarState === 'ok' && date && (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="flex-1 font-semibold">{t('calendarOk')}</p>
-            <a
-              href={`https://calendar.google.com/calendar/u/0/r/day/${date.slice(0, 4)}/${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`}
-              target="_blank"
-              rel="noreferrer"
-              className={buttonClasses('outline')}
-            >
-              {t('calendarOpen')}
-            </a>
-          </div>
-        )}
-        {calendarState === 'missing' && (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="flex-1 font-semibold">{t('calendarMissing')}</p>
-            <Button variant="primary" disabled={busy} onClick={() => void retryCalendar()}>
-              {t('calendarTryAgain')}
-            </Button>
-          </div>
-        )}
-        {calendarState === 'removed' && <p>{t('calendarRemoved')}</p>}
-        {calendarState === 'past' && <p>{t('calendarPast')}</p>}
-      </Card>
+          <Card className={CARD}>
+            <CardTitle>{t('calendar')}</CardTitle>
+            {calendarState === 'ok' && date && (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="flex-1 font-semibold">{t('calendarOk')}</p>
+                <a
+                  href={`https://calendar.google.com/calendar/u/0/r/day/${date.slice(0, 4)}/${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={buttonClasses('outline')}
+                >
+                  {t('calendarOpen')}
+                </a>
+              </div>
+            )}
+            {calendarState === 'missing' && (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="flex-1 font-semibold">{t('calendarMissing')}</p>
+                <Button variant="primary" disabled={busy} onClick={() => void retryCalendar()}>
+                  {t('calendarTryAgain')}
+                </Button>
+              </div>
+            )}
+            {calendarState === 'removed' && <p>{t('calendarRemoved')}</p>}
+            {calendarState === 'past' && <p>{t('calendarPast')}</p>}
+          </Card>
 
-      <Card>
-        <CardTitle>{t('previous')}</CardTitle>
-        {previous ? (
-          <p>
-            <Link
-              href={`/meetings/${previous.id}`}
-              className="inline-flex min-h-tap items-center underline"
-            >
-              {previous.title}
-              {previous.date ? ` · ${fullDate(previous.date)}` : ''}
-            </Link>
-          </p>
-        ) : (
-          <p className="text-muted">{t('noSeries')}</p>
-        )}
-        {next && (
-          <>
-            <h3 className="mt-4 text-xl font-semibold">{t('next')}</h3>
-            <p>
+          <Card className={CARD}>
+            <CardTitle>{t('previous')}</CardTitle>
+            {previous ? (
+              <p>
+                <Link
+                  href={`/meetings/${previous.id}`}
+                  className="inline-flex min-h-tap items-center underline"
+                >
+                  {previous.title}
+                  {previous.date ? ` · ${fullDate(previous.date)}` : ''}
+                </Link>
+              </p>
+            ) : (
+              <p className="text-muted">{t('noSeries')}</p>
+            )}
+            {next && (
+              <>
+                <h3 className="mt-4 text-xl font-semibold">{t('next')}</h3>
+                <p>
+                  <Link
+                    href={`/meetings/${next.id}`}
+                    className="inline-flex min-h-tap items-center underline"
+                  >
+                    {next.title}
+                    {next.date ? ` · ${fullDate(next.date)}` : ''}
+                  </Link>
+                </p>
+              </>
+            )}
+          </Card>
+
+          <Card className={CARD}>
+            <CardTitle>{t('rescheduleHistory')}</CardTitle>
+            {!history || history.reschedules.length === 0 ? (
+              <p className="text-muted">{t('noReschedules')}</p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {history.reschedules.map((r) => (
+                  <li key={String(r.id)} className="border-b-ui border-soft pb-3">
+                    <p className="font-semibold">
+                      {t('movedFrom', {
+                        from: `${fullDate(String(r.old_date))} ${timeText(String(r.old_start), settings)}`,
+                        to: `${fullDate(String(r.new_date))} ${timeText(String(r.new_start), settings)}`,
+                      })}
+                    </p>
+                    <p className="text-muted">
+                      {t('changedOn', { when: stampText(String(r.changed_at), settings) })}
+                    </p>
+                    {r.reason ? <p>{t('reasonIs', { reason: String(r.reason) })}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <details className="rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm md:p-5">
+            <summary className="min-h-tap cursor-pointer text-2xl font-semibold">
+              {t('changeHistory')}
+            </summary>
+            {!history || history.audit.length === 0 ? (
+              <p className="mt-3 text-muted">{t('noChanges')}</p>
+            ) : (
+              <ul className="mt-3 flex flex-col gap-3">
+                {history.audit.map((a) => {
+                  const keys = (() => {
+                    try {
+                      return Object.keys(JSON.parse(String(a.changes || '{}')) as object);
+                    } catch {
+                      return [];
+                    }
+                  })();
+                  const labelOf = (k: string) =>
+                    meta.fields.find(
+                      (f) => f.category_slug === meeting.category_slug && f.key === k,
+                    )?.label ?? k;
+                  return (
+                    <li key={String(a.id)} className="border-b-ui border-soft pb-3">
+                      <p className="font-semibold">
+                        {t(`action_${String(a.action)}` as 'action_update')} ·{' '}
+                        {stampText(String(a.ts), settings)}
+                      </p>
+                      <p className="text-muted">{t('by', { who: String(a.user_email) })}</p>
+                      {keys.length > 0 && <p>{keys.map(labelOf).join(', ')}</p>}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </details>
+
+          {!deleted && (
+            <div className="flex flex-wrap gap-3">
               <Link
-                href={`/meetings/${next.id}`}
-                className="inline-flex min-h-tap items-center underline"
+                href={`/meetings/${meeting.id}/done?next=1`}
+                className={buttonClasses(kind('scheduleNext'))}
               >
-                {next.title}
-                {next.date ? ` · ${fullDate(next.date)}` : ''}
+                {t('scheduleNext')}
               </Link>
-            </p>
-          </>
-        )}
-      </Card>
-
-      <Card>
-        <CardTitle>{t('rescheduleHistory')}</CardTitle>
-        {!history || history.reschedules.length === 0 ? (
-          <p className="text-muted">{t('noReschedules')}</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {history.reschedules.map((r) => (
-              <li key={String(r.id)} className="border-b-ui border-soft pb-3">
-                <p className="font-semibold">
-                  {t('movedFrom', {
-                    from: `${fullDate(String(r.old_date))} ${timeText(String(r.old_start), settings)}`,
-                    to: `${fullDate(String(r.new_date))} ${timeText(String(r.new_start), settings)}`,
-                  })}
-                </p>
-                <p className="text-muted">
-                  {t('changedOn', { when: stampText(String(r.changed_at), settings) })}
-                </p>
-                {r.reason ? <p>{t('reasonIs', { reason: String(r.reason) })}</p> : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <details className="rounded-2xl border-ui border-soft bg-surface shadow-sm p-5">
-        <summary className="min-h-tap cursor-pointer text-2xl font-semibold">
-          {t('changeHistory')}
-        </summary>
-        {!history || history.audit.length === 0 ? (
-          <p className="mt-3 text-muted">{t('noChanges')}</p>
-        ) : (
-          <ul className="mt-3 flex flex-col gap-3">
-            {history.audit.map((a) => {
-              const keys = (() => {
-                try {
-                  return Object.keys(JSON.parse(String(a.changes || '{}')) as object);
-                } catch {
-                  return [];
-                }
-              })();
-              const labelOf = (k: string) =>
-                meta.fields.find((f) => f.category_slug === meeting.category_slug && f.key === k)
-                  ?.label ?? k;
-              return (
-                <li key={String(a.id)} className="border-b-ui border-soft pb-3">
-                  <p className="font-semibold">
-                    {t(`action_${String(a.action)}` as 'action_update')} ·{' '}
-                    {stampText(String(a.ts), settings)}
-                  </p>
-                  <p className="text-muted">{t('by', { who: String(a.user_email) })}</p>
-                  {keys.length > 0 && <p>{keys.map(labelOf).join(', ')}</p>}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </details>
-
-      {!deleted && (
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href={`/meetings/${meeting.id}/done?next=1`}
-            className={buttonClasses(kind('scheduleNext'))}
-          >
-            {t('scheduleNext')}
-          </Link>
-          <Button variant="danger" disabled={busy} onClick={() => setConfirm('delete')}>
-            {t('delete')}
-          </Button>
+              <Button variant="danger" disabled={busy} onClick={() => setConfirm('delete')}>
+                {t('delete')}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <ConfirmDialog
         open={confirm === 'cancel'}
