@@ -43,6 +43,8 @@ function Manager({
   const t = useTranslations('admin');
   const client = useQueryClient();
   const [message, setMessage] = useState('');
+  const [removingKey, setRemovingKey] = useState('');
+  const [removeError, setRemoveError] = useState('');
   const category = meta.categories.find((c) => c.slug === slug);
   const fields = meta.fields
     .filter((f) => f.category_slug === slug)
@@ -69,6 +71,47 @@ function Manager({
           body: { direction },
         }),
       t('moved', { name: f.label }),
+    );
+
+  // Delete for good, straight from the list: the same typed confirmation and backup as on the Edit page.
+  async function remove(f: FieldDef, confirm: string) {
+    setRemoveError('');
+    setMessage('');
+    try {
+      await api(`/admin/fields/${f.category_slug}/${f.key}/remove`, {
+        method: 'POST',
+        body: { confirm },
+      });
+      setRemovingKey('');
+      await client.invalidateQueries();
+      setMessage(t('deletedColumn', { name: f.label }));
+    } catch (e) {
+      setRemoveError(e instanceof ApiError ? (e.issues[0]?.message ?? e.message) : t('cellFailed'));
+    }
+  }
+  const startRemove = (f: FieldDef) => {
+    setRemoveError('');
+    setRemovingKey(f.key);
+  };
+  const deleteButton = (f: FieldDef) =>
+    removingKey !== f.key && (
+      <Button variant="danger" onClick={() => startRemove(f)}>
+        {t('deleteColumn')}
+        <span className="sr-only">{` — ${f.label}`}</span>
+      </Button>
+    );
+  const confirmBox = (f: FieldDef) =>
+    removingKey === f.key && (
+      <div className="w-full">
+        <TypedConfirm
+          word={f.label}
+          warning={t('removeColumnWarning')}
+          confirmLabel={t('removeForGood')}
+          error={removeError}
+          onConfirm={(typed) => void remove(f, typed)}
+          onCancel={() => setRemovingKey('')}
+        />
+      </div>
     );
 
   const visible = fields.filter((f) => !f.archived);
@@ -119,7 +162,7 @@ function Manager({
           {visible.map((f, i) => (
             <li
               key={f.key}
-              className="flex flex-col gap-3 rounded-2xl border-ui border-soft bg-surface shadow-sm p-4"
+              className="flex flex-col gap-3 rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-lg font-semibold">{f.label}</span>
@@ -180,7 +223,9 @@ function Manager({
                     <span className="sr-only">{` — ${f.label}`}</span>
                   </Button>
                 )}
+                {!f.locked && deleteButton(f)}
               </div>
+              {confirmBox(f)}
             </li>
           ))}
         </ul>
@@ -210,6 +255,8 @@ function Manager({
                     {t('edit')}
                     <span className="sr-only">{` — ${f.label}`}</span>
                   </Link>
+                  {!f.locked && deleteButton(f)}
+                  {confirmBox(f)}
                 </li>
               ))}
             </ul>

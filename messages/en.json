@@ -276,6 +276,8 @@
     "removeColumnHeading": "Remove this column for good",
     "removeColumnBody": "Hiding a column keeps its data. Removing it deletes the column and everything typed in it.",
     "removeColumn": "Remove column for good…",
+    "deleteColumn": "Delete",
+    "deletedColumn": "Deleted {name} for good. A backup was made first.",
     "removeColumnWarning": "This deletes the column and all its answers. A backup is made first.",
     "trashIntro": "Meetings you deleted wait here. Restore brings one back with its calendar event.",
     "trashEmpty": "The Trash is empty.",

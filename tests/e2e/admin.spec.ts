@@ -184,6 +184,29 @@ test.describe('columns and categories', () => {
     await expect(page.getByText(label, { exact: true })).toHaveCount(0);
   });
 
+  test('a column can be deleted straight from the list, after typing its name', async ({
+    page,
+  }, info) => {
+    desktopOnly(info.project.name);
+    const label = `Quick ${uid()}`;
+    await page.goto('/admin/columns/others/new');
+    await page.getByLabel('Column name').fill(label);
+    await page.getByRole('button', { name: 'Add column' }).click();
+    await pickCategory(page, 'others');
+    // Core columns cannot be deleted, so they have no Delete button.
+    await expect(page.getByRole('button', { name: /^Delete — Title$/ })).toHaveCount(0);
+    await page.getByRole('button', { name: new RegExp(`^Delete — ${label}$`) }).click();
+    const confirm = page.getByRole('button', { name: 'Remove for good' });
+    await expect(confirm).toBeDisabled();
+    await page.getByRole('button', { name: 'Keep it' }).click();
+    await expect(confirm).toHaveCount(0);
+    await page.getByRole('button', { name: new RegExp(`^Delete — ${label}$`) }).click();
+    await page.getByLabel(/^Type .* to confirm$/).fill(label);
+    await confirm.click();
+    await expect(page.getByRole('status').filter({ hasText: `Deleted ${label}` })).toBeVisible();
+    await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+  });
+
   test('has no serious accessibility problems', async ({ page }, info) => {
     desktopOnly(info.project.name);
     await page.goto('/admin/columns');
