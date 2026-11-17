@@ -160,7 +160,7 @@
     "colFiles": "Files",
     "fileCount": "{count, plural, one {1 file} other {# files}}",
     "openFile": "Open file",
-    "seeFiles": "See files",
+    "seeFiles": "See {count} files",
     "notOnCalendar": "Not on your calendar yet",
     "attentionUnsynced": "{count, plural, one {1 meeting isn't on your calendar yet.} other {# meetings aren't on your calendar yet.}}",
     "fixNow": "Fix now",

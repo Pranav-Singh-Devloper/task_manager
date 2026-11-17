@@ -45,7 +45,9 @@ test.describe('files', () => {
     );
 
     await page.goto(`/?q=${encodeURIComponent(topic)}`);
-    await expect(page.getByText('1 file', { exact: true }).first()).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open file — order-sheet.pdf' }).first(),
+    ).toBeVisible();
     // The file's name is searchable too.
     await page.goto('/?q=order-sheet.pdf');
     await expect(page.getByRole('link', { name: topic }).first()).toBeVisible();

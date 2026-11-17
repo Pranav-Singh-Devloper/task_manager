@@ -15,6 +15,9 @@ export const isOpen = (m: Meeting) =>
     m.values.meeting_status === 'Rescheduled' ||
     !m.values.meeting_status);
 
+/** Row buttons keep their label on one line so every button in a row is the same height. */
+const ROW_BUTTON = buttonClasses('outline', 'md', 'whitespace-nowrap');
+
 /** A meeting that should be on the calendar but is not yet: shown as a small note. */
 export const offCalendar = (m: Meeting) =>
   isOpen(m) && (m.calendar_sync === 'error' || m.calendar_sync === 'pending');
@@ -30,7 +33,7 @@ export function TitleCell({ meeting }: { meeting: Meeting }) {
       >
         {meeting.title}
       </Link>
-      <span className="flex flex-wrap gap-2">
+      <span className="flex flex-wrap gap-2 whitespace-nowrap">
         {offCalendar(meeting) && <Chip>{t('notOnCalendar')}</Chip>}
         {meeting.reschedule_count > 0 && (
           <Chip>{t('rescheduledTimes', { count: meeting.reschedule_count })}</Chip>
@@ -55,39 +58,29 @@ export function JoinButton({ meeting }: { meeting: Meeting }) {
   const link = meeting.values.meeting_link;
   if (!isWebLink(link) || meeting.deleted_at) return null;
   return (
-    <a href={link} target="_blank" rel="noreferrer" className={buttonClasses('outline')}>
+    <a href={link} target="_blank" rel="noreferrer" className={ROW_BUTTON}>
       {t('join')}
       <span className="sr-only">{` — ${meeting.title}`}</span>
     </a>
   );
 }
 
-/** How many files, with one button: Open for a single file, or the meeting page when there are several. */
+/** One button: "Open file" for a single file, or "See 3 files" (the meeting page) when there are several. */
 export function FilesCell({ meeting }: { meeting: Meeting }) {
   const t = useTranslations('dashboard');
   const files = meeting.files;
   if (files.length === 0) return <span className="text-muted">{'—'}</span>;
   const one = files[0]!;
-  return (
-    <span className="flex flex-col items-start gap-1">
-      <span className="font-semibold">{t('fileCount', { count: files.length })}</span>
-      {files.length === 1 ? (
-        <a
-          href={one.view_link}
-          target="_blank"
-          rel="noreferrer"
-          className={buttonClasses('outline')}
-        >
-          {t('openFile')}
-          <span className="sr-only">{` — ${one.name}`}</span>
-        </a>
-      ) : (
-        <Link href={`/meetings/${meeting.id}`} className={buttonClasses('outline')}>
-          {t('seeFiles')}
-          <span className="sr-only">{` — ${meeting.title}`}</span>
-        </Link>
-      )}
-    </span>
+  return files.length === 1 ? (
+    <a href={one.view_link} target="_blank" rel="noreferrer" className={ROW_BUTTON}>
+      {t('openFile')}
+      <span className="sr-only">{` — ${one.name}`}</span>
+    </a>
+  ) : (
+    <Link href={`/meetings/${meeting.id}`} className={ROW_BUTTON}>
+      {t('seeFiles', { count: files.length })}
+      <span className="sr-only">{` — ${meeting.title}`}</span>
+    </Link>
   );
 }
 
@@ -98,7 +91,7 @@ export function RescheduleButton({ meeting, here }: { meeting: Meeting; here: st
   return (
     <Link
       href={`/meetings/${meeting.id}/reschedule?return=${encodeURIComponent(here)}`}
-      className={buttonClasses('outline')}
+      className={ROW_BUTTON}
     >
       {t('reschedule')}
       <span className="sr-only">{` — ${meeting.title}`}</span>

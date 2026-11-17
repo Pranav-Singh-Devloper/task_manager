@@ -56,12 +56,26 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
                 </span>
               );
             }
+            // A long category may wrap inside its tag; the tag's padding and corners are made for that.
             case 'category':
-              return <CategoryChip meeting={m} meta={meta} />;
+              return (
+                <span className="inline-block min-w-[8rem] max-w-[13rem]">
+                  <CategoryChip meeting={m} meta={meta} />
+                </span>
+              );
             case 'title':
-              return <TitleCell meeting={m} />;
+              // The title gets real room; otherwise one-line tags squeeze it to a word per line.
+              return (
+                <div className="min-w-[13rem]">
+                  <TitleCell meeting={m} />
+                </div>
+              );
             case 'status':
-              return <StatusCell meeting={m} />;
+              return (
+                <span className="whitespace-nowrap">
+                  <StatusCell meeting={m} />
+                </span>
+              );
             case 'join':
               return <JoinButton meeting={m} />;
             case 'files':
@@ -171,9 +185,10 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
               </tr>
             )}
             {section.rows.map((row) => (
+              // Everything in a row lines up through its middle: time, tags, title and buttons.
               <tr
                 key={row.id}
-                className="cursor-pointer border-t-ui border-soft align-top transition-colors hover:bg-sunken"
+                className="cursor-pointer border-t-ui border-soft align-middle transition-colors hover:bg-sunken"
                 onClick={(e) => {
                   // A click anywhere on the row opens it, unless it was on a link or button of its own.
                   if ((e.target as HTMLElement).closest('a, button')) return;
@@ -181,7 +196,7 @@ export function MeetingTable({ meetings, columns, meta, grouped, sort, dir, onSo
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3 align-top">
+                  <td key={cell.id} className="px-4 py-2 align-middle">
                     <Fragment>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Fragment>
                   </td>
                 ))}
