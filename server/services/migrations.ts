@@ -123,3 +123,39 @@ export async function addTrackers(google: Google, spreadsheetId: string): Promis
     todo.map((s) => trackerToRow({ ...s.tracker, sheet_gid: gids.get(s.tracker.slug) ?? null })),
   );
 }
+
+/**
+ * Version 3: Google Calendar for Discussions and Award Plan, as the owner asked. Lists made before the calendar
+ * setting existed have no value for it; only those get it switched on. A list where someone has since chosen on or
+ * off is left alone.
+ */
+export async function calendarForSeedLists(google: Google, spreadsheetId: string): Promise<void> {
+  const { sheets } = google;
+  const tab = (await sheets.getTabs(spreadsheetId)).find((t) => t.title === TAB.trackers);
+  if (!tab) return;
+  const rows = (await sheets.batchGet(spreadsheetId, [tab.gid]))[tab.gid] ?? [];
+  const headers = (rows[0] ?? []).map((c) => String(c ?? '').trim());
+  const slugCol = headers.indexOf('slug');
+  const settingsCol = headers.indexOf('settings');
+  if (slugCol < 0 || settingsCol < 0) return;
+  const blocks: { gid: number; startRow: number; rows: Cell[][] }[] = [];
+  rows.forEach((r, i) => {
+    if (i === 0) return;
+    const slug = String(r[slugCol] ?? '').trim();
+    if (slug !== 'discussions' && slug !== 'award_plan') return;
+    let settings: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(String(r[settingsCol] ?? '') || '{}');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+      settings = parsed as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    if ('calendar' in settings) return;
+    const next = [...r];
+    while (next.length <= settingsCol) next.push('');
+    next[settingsCol] = JSON.stringify({ ...settings, calendar: true });
+    blocks.push({ gid: tab.gid, startRow: i + 1, rows: [next] });
+  });
+  if (blocks.length > 0) await sheets.writeBlocks(spreadsheetId, blocks);
+}

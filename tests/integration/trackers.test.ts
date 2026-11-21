@@ -354,3 +354,37 @@ describe('lists on Google Calendar', () => {
     expect(events(f).some((e) => e.extendedProperties.private.mmTrackerRowId === id)).toBe(true);
   });
 });
+
+describe('migration 3: calendar for Discussions and Award Plan', () => {
+  it('switches the calendar on where it was never set, and leaves a chosen setting alone', async () => {
+    const { services } = await createMockGoogle({ seed: 'empty' });
+    const db = await createDatabase(services, new Date());
+    await addTrackers(services, db.spreadsheetId);
+    const { calendarForSeedLists } = await import('../../server/services/migrations');
+    const { parseTrackers } = await import('../../shared/configRows');
+    const tab = (await services.sheets.getTabs(db.spreadsheetId)).find(
+      (t) => t.title === TAB.trackers,
+    )!;
+    const read = async () =>
+      parseTrackers((await services.sheets.batchGet(db.spreadsheetId, [tab.gid]))[tab.gid] ?? [])
+        .items;
+    // Like a list made before the setting existed: no "calendar" in its settings.
+    const rows = (await services.sheets.batchGet(db.spreadsheetId, [tab.gid]))[tab.gid]!;
+    const col = rows[0]!.indexOf('settings');
+    const blocks = rows.slice(1).map((r, i) => {
+      const s = JSON.parse(String(r[col])) as Record<string, unknown>;
+      delete s.calendar;
+      if (r[0] === 'award_plan') s.calendar = false; // someone chose off
+      const next = [...r];
+      next[col] = JSON.stringify(s);
+      return { gid: tab.gid, startRow: i + 2, rows: [next] };
+    });
+    await services.sheets.writeBlocks(db.spreadsheetId, blocks);
+
+    await calendarForSeedLists(services, db.spreadsheetId);
+    const after = await read();
+    expect(after.find((t) => t.slug === 'discussions')?.settings.calendar).toBe(true);
+    expect(after.find((t) => t.slug === 'award_plan')?.settings.calendar).toBe(false);
+    expect(after.find((t) => t.slug === 'dpr')?.settings.calendar).toBe(false);
+  });
+});

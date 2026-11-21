@@ -2,7 +2,7 @@ import { SCHEMA_VERSION, TAB, SYSTEM_TAB_HEADERS } from '../../shared/schema';
 import { GoogleApiError } from './google/errors';
 import type { AppState, GoogleServices } from './google/types';
 import { DATABASE_APP_PROPERTIES, createDatabase } from './databaseSeed';
-import { addTrackers } from './migrations';
+import { addTrackers, calendarForSeedLists } from './migrations';
 
 export interface Migration {
   /** The schema version this migration brings the database to. */
@@ -12,7 +12,10 @@ export interface Migration {
 }
 
 /** Version 1 is what createDatabase writes. Every later change to the database's shape is a migration here. */
-export const MIGRATIONS: Migration[] = [{ version: 2, run: addTrackers }];
+export const MIGRATIONS: Migration[] = [
+  { version: 2, run: addTrackers },
+  { version: 3, run: calendarForSeedLists },
+];
 
 export interface BootstrapOptions {
   /** SPREADSHEET_ID override. */
