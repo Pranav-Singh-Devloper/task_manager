@@ -131,10 +131,14 @@ export class TrackerService {
   queueSync(slug: string, id: string): void {
     const key = `${slug}:${id}`;
     const previous = this.running.get(key) ?? Promise.resolve();
-    const run = previous
+    const run: Promise<void> = previous
       .catch(() => undefined)
-      .then(() => this.syncNow(slug, id))
-      .catch((err: unknown) => this.options.logger?.warn({ err, id }, 'list calendar sync failed'));
+      .then(async () => {
+        await this.syncNow(slug, id);
+      })
+      .catch((err: unknown) => {
+        this.options.logger?.warn({ err, id }, 'list calendar sync failed');
+      });
     this.running.set(key, run);
     void run.finally(() => {
       if (this.running.get(key) === run) this.running.delete(key);
