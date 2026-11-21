@@ -515,8 +515,8 @@ test.describe('the first-time-user journey', () => {
     const started = Date.now();
     const topic = `Journey ${uid()}`;
 
-    await page.goto('/');
-    await page.getByRole('link', { name: '+ New meeting' }).click();
+    await page.goto('/meetings');
+    await page.getByRole('main').getByRole('link', { name: '+ New meeting' }).click();
     await page.getByRole('link', { name: 'Others', exact: true }).click();
     await page.getByRole('button', { name: 'Tomorrow' }).click();
     await field(page, 'start_time').fill('15:00');
@@ -610,9 +610,10 @@ test.describe('accessibility and layout on the new screens', () => {
     page,
   }, info) => {
     await page.goto('/meetings/new?category=ccie');
-    await expect(page.getByRole('link', { name: '+ New meeting' })).toHaveCount(
-      info.project.name === 'mobile' ? 0 : 1,
-    );
+    // No floating button over a form; on a computer the sidebar has Add beside Meetings instead.
+    await expect(page.getByRole('link', { name: '+ New meeting' })).toHaveCount(0);
+    if (info.project.name === 'desktop')
+      await expect(page.getByRole('link', { name: 'Add — Meetings' })).toBeVisible();
     await page.locator('#field-workspace').scrollIntoViewIfNeeded();
     const field = await page.locator('#field-workspace').boundingBox();
     const bar = await page.getByRole('button', { name: 'Save meeting' }).boundingBox();

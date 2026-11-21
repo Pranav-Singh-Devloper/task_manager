@@ -20,7 +20,7 @@ test.describe('signed out', () => {
     await page.goto('/login');
     await page.getByRole('link', { name: 'Sign in with Google' }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: 'Your meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Today at a glance' })).toBeVisible();
     await expect(page.locator('header').getByText('Demo owner')).toBeVisible();
   });
 

@@ -1,6 +1,11 @@
+import { fullRoles } from './trackerSeed';
 import {
   FIELD_TYPES,
+  TRACKER_KINDS,
   type CategoryDef,
+  type TrackerDef,
+  type TrackerKind,
+  type TrackerSettings,
   type Cell,
   type FieldDef,
   type FieldType,
@@ -77,6 +82,77 @@ export function parseCategories(rows: Cell[][]): ParseResult<CategoryDef> {
       default_workspace: str(o.default_workspace),
       title_template: str(o.title_template),
       sheet_gid: gid === '' ? null : num(o.sheet_gid, 0),
+      is_seed: bool(o.is_seed),
+      created_at: str(o.created_at),
+    });
+  });
+  return { ...result, items: result.items.sort((a, b) => a.sort - b.sort) };
+}
+
+/** Reads a tracker's settings cell. A cell that is not valid JSON gives the default roles, never an error. */
+function trackerSettings(raw: string): { settings: TrackerSettings; ok: boolean } {
+  const fallback: TrackerSettings = {
+    roles: fullRoles(undefined),
+    targets: { km: null, cr: null },
+  };
+  if (!raw) return { settings: fallback, ok: true };
+  try {
+    const parsed = JSON.parse(raw) as Partial<TrackerSettings> | null;
+    if (!parsed || typeof parsed !== 'object') return { settings: fallback, ok: false };
+    const roles = fullRoles(
+      parsed.roles && typeof parsed.roles === 'object' ? parsed.roles : undefined,
+    );
+    const asList = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
+    const asNum = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
+    return {
+      settings: {
+        roles: {
+          ...roles,
+          closed_values: asList(roles.closed_values),
+          sum_keys: asList(roles.sum_keys),
+        },
+        targets: { km: asNum(parsed.targets?.km), cr: asNum(parsed.targets?.cr) },
+      },
+      ok: true,
+    };
+  } catch {
+    return { settings: fallback, ok: false };
+  }
+}
+
+export function parseTrackers(rows: Cell[][]): ParseResult<TrackerDef> {
+  const { headers, body } = table(rows);
+  const result: ParseResult<TrackerDef> = { items: [], problems: [] };
+  const seen = new Set<string>();
+  body.forEach((r, i) => {
+    const o = rowToObject(headers, r);
+    const slug = str(o.slug);
+    if (!slug) return;
+    if (seen.has(slug)) {
+      result.problems.push(
+        `Tracker "${slug}" appears twice in the _trackers tab (row ${i + 2}). The second one is ignored.`,
+      );
+      return;
+    }
+    seen.add(slug);
+    const kind = str(o.kind);
+    const parsed = trackerSettings(str(o.settings));
+    if (!parsed.ok) {
+      result.problems.push(
+        `The settings of tracker "${slug}" (row ${i + 2}) could not be read, so its dashboard uses the defaults.`,
+      );
+    }
+    const gid = str(o.sheet_gid);
+    result.items.push({
+      slug,
+      name: str(o.name) || slug,
+      item_name: str(o.item_name) || 'item',
+      kind: (TRACKER_KINDS as readonly string[]).includes(kind) ? (kind as TrackerKind) : 'custom',
+      color: str(o.color) || '#334155',
+      sort: num(o.sort, i + 1),
+      active: o.active === null || o.active === '' ? true : bool(o.active),
+      sheet_gid: gid === '' ? null : num(o.sheet_gid, 0),
+      settings: parsed.settings,
       is_seed: bool(o.is_seed),
       created_at: str(o.created_at),
     });

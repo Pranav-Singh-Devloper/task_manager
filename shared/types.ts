@@ -15,6 +15,8 @@ export const FIELD_TYPES = [
   'file',
   'auto_number',
   'computed',
+  /** Track: a list of states, each with the date it was reached. One "Name (YYYY-MM-DD)" per line in the Sheet. */
+  'stages',
 ] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
@@ -91,4 +93,66 @@ export interface ValidationIssue {
   field: string;
   /** Plain language, safe to show next to the field. */
   message: string;
+}
+
+/** What a tracker is for. Its dashboard tiles follow from this; "custom" trackers get the general set. */
+export const TRACKER_KINDS = [
+  'award',
+  'discussion',
+  'dpr',
+  'track',
+  'observation',
+  'custom',
+] as const;
+export type TrackerKind = (typeof TRACKER_KINDS)[number];
+
+/**
+ * Which columns play which part. The dashboard reads these, so a column can be renamed or a new tracker made
+ * without any code: the tiles follow the roles.
+ */
+export interface TrackerRoles {
+  /** The column that names a row (project, topic, event). */
+  title_key: string;
+  /** The status or stage column. */
+  status_key: string;
+  /** Status values that mean "finished": these rows are not open. */
+  closed_values: string[];
+  /** The date that matters: bid due date, target date, completion date. Overdue and "due soon" read this. */
+  due_key: string;
+  /** Rows are grouped by this column in the breakdown: person, consultant, mode. */
+  group_key: string;
+  /** Number columns that are added up, such as km or ₹ Cr. */
+  sum_keys: string[];
+  /** Award Plan: the date a project was awarded, for "awarded this year". */
+  done_date_key: string;
+  /** Track: the column that holds the states. */
+  stages_key: string;
+  /** A step-by-step column shown as a pipeline, such as DPR's present stage. */
+  stage_key: string;
+}
+
+export interface TrackerTargets {
+  /** Award Plan: this financial year's target, in km and ₹ Cr. Blank until set. */
+  km: number | null;
+  cr: number | null;
+}
+
+export interface TrackerSettings {
+  roles: TrackerRoles;
+  targets: TrackerTargets;
+}
+
+export interface TrackerDef {
+  slug: string;
+  name: string;
+  /** Singular, for buttons: "Add project". */
+  item_name: string;
+  kind: TrackerKind;
+  color: string;
+  sort: number;
+  active: boolean;
+  sheet_gid: number | null;
+  settings: TrackerSettings;
+  is_seed: boolean;
+  created_at: string;
 }

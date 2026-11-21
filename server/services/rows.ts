@@ -39,6 +39,11 @@ function readValue(f: FieldDef, raw: Cell | undefined, problems: string[]): Fiel
     }
     case 'checkbox':
       return raw === true || /^(true|yes|y|1)$/i.test(s);
+    case 'stages':
+      return s
+        .split(/\r?\n/)
+        .map((p) => p.trim())
+        .filter(Boolean);
     case 'multi_select':
       return s
         .split(',')
@@ -118,7 +123,13 @@ export function serializeRow(
     }
     const f = byKey.get(h);
     if (!f) return; // an unmanaged column: keep what is there
-    out[i] = f.type === 'computed' ? '' : writeValue(values[h]);
+    const v = values[h];
+    out[i] =
+      f.type === 'computed'
+        ? ''
+        : f.type === 'stages' && Array.isArray(v)
+          ? v.join('\n')
+          : writeValue(v);
   });
   return out;
 }

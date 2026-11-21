@@ -4,6 +4,7 @@
  */
 export const NAV_ITEMS = [
   { href: '/', key: 'dashboard' },
+  { href: '/meetings', key: 'meetings' },
   { href: '/admin', key: 'admin' },
   { href: '/settings', key: 'settings' },
 ] as const;
@@ -19,6 +20,7 @@ export function isFormPage(pathname: string): boolean {
   return (
     pathname === '/meetings/new' ||
     pathname === '/categories/new' ||
+    /^\/trackers\/[^/]+\/[^/]+$/.test(pathname) ||
     /^\/meetings\/[^/]+\/(edit|reschedule|done)$/.test(pathname)
   );
 }

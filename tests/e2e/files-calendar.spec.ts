@@ -44,12 +44,12 @@ test.describe('files', () => {
       /drive\.mock\.local/,
     );
 
-    await page.goto(`/?q=${encodeURIComponent(topic)}`);
+    await page.goto(`/meetings?q=${encodeURIComponent(topic)}`);
     await expect(
       page.getByRole('link', { name: 'Open file — order-sheet.pdf' }).first(),
     ).toBeVisible();
     // The file's name is searchable too.
-    await page.goto('/?q=order-sheet.pdf');
+    await page.goto('/meetings?q=order-sheet.pdf');
     await expect(page.getByRole('link', { name: topic }).first()).toBeVisible();
   });
 
@@ -137,7 +137,7 @@ test.describe('calendar', () => {
   test('the dashboard marks a meeting that is not on the calendar', async ({ page }) => {
     const topic = `Marked calendar-down-once ${uid()}`;
     await createViaApi(page, 'others', others({ topic }));
-    await page.goto(`/?q=${encodeURIComponent(topic)}`);
+    await page.goto(`/meetings?q=${encodeURIComponent(topic)}`);
     await expect(page.getByText('Not on your calendar yet').first()).toBeVisible();
   });
 

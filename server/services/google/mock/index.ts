@@ -1,7 +1,9 @@
 import { createDatabase, type CreatedDatabase } from '../../databaseSeed';
 import type { GoogleServices } from '../types';
 import { MockCalendar } from './calendar';
+import { MIGRATIONS, runMigrations } from '../../bootstrap';
 import { seedDemoMeetings } from './demo';
+import { seedDemoTrackers } from './demoTrackers';
 import { MockDrive } from './drive';
 import { FailureInjector } from './failure';
 import { MockMail } from './mail';
@@ -43,6 +45,13 @@ export async function createMockGoogle(options: MockOptions = {}): Promise<MockG
     const now = options.now ?? new Date();
     database = await createDatabase(services, now);
     await seedDemoMeetings(services, database, now, options.timezone ?? 'Asia/Kolkata');
+    await runMigrations(services, database.spreadsheetId, MIGRATIONS);
+    await seedDemoTrackers(
+      services,
+      database.spreadsheetId,
+      now,
+      options.timezone ?? 'Asia/Kolkata',
+    );
   }
 
   failures.load(options.failures ?? '');

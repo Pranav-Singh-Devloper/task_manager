@@ -3,8 +3,10 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import type { Meeting } from '@/shared/meeting';
-import type { CategoryDef, FieldDef, Settings, WorkspaceDef } from '@/shared/types';
+import type { TrackerKpis, TrackerRow } from '@/shared/trackerKpis';
+import type { CategoryDef, FieldDef, Settings, TrackerDef, WorkspaceDef } from '@/shared/types';
 import { api } from './api';
+import { useHydrated } from './use-hydrated';
 
 export interface Meta {
   categories: CategoryDef[];
@@ -13,6 +15,19 @@ export interface Meta {
   settings: Settings;
   problems: string[];
   attention: { tab: string; row: number; message: string }[];
+  trackers: TrackerDef[];
+  trackerFields: FieldDef[];
+}
+
+export interface TrackerData {
+  tracker: TrackerDef;
+  fields: FieldDef[];
+  rows: TrackerRow[];
+}
+
+export interface TrackerSummary {
+  tracker: TrackerDef;
+  kpis: TrackerKpis;
 }
 
 export interface MeetingSummary {
@@ -45,10 +60,38 @@ export function QueryProvider({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-export const useMeta = () => useQuery({ queryKey: ['meta'], queryFn: () => api<Meta>('/meta') });
+/**
+ * The config every screen needs. The sidebar asks for it as soon as the page starts, so it can arrive before a part of
+ * the page wrapped in Suspense has been attached; that part would then draw something different from the server's
+ * HTML. Until the page is attached, the answer is reported as still loading, exactly as the server drew it.
+ */
+export function useMeta() {
+  const hydrated = useHydrated();
+  const query = useQuery({ queryKey: ['meta'], queryFn: () => api<Meta>('/meta') });
+  if (hydrated) return query;
+  return {
+    ...query,
+    data: undefined,
+    isPending: true,
+    isError: false,
+    isSuccess: false,
+  } as typeof query;
+}
 
 export const useMeeting = (id: string) =>
   useQuery({ queryKey: ['meeting', id], queryFn: () => api<MeetingDetail>(`/meetings/${id}`) });
 
 export const useHistory = (id: string) =>
   useQuery({ queryKey: ['history', id], queryFn: () => api<History>(`/meetings/${id}/history`) });
+
+export const useTrackerRows = (slug: string, deleted = false) =>
+  useQuery({
+    queryKey: ['tracker', slug, deleted ? 'deleted' : 'rows'],
+    queryFn: () => api<TrackerData>(`/trackers/${slug}/rows${deleted ? '?deleted=1' : ''}`),
+  });
+
+export const useTrackerSummaries = () =>
+  useQuery({
+    queryKey: ['tracker', 'summary'],
+    queryFn: () => api<{ trackers: TrackerSummary[] }>('/trackers/summary'),
+  });

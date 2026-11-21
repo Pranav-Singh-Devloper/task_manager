@@ -1,3 +1,4 @@
+import { formatStage, parseStages } from './stages';
 import { z } from 'zod';
 import { parseDateLoose, parseTimeLoose } from './dates';
 import { MEETING_STATUSES, type FieldDef, type FieldValue, type ValidationIssue } from './types';
@@ -135,6 +136,36 @@ function fieldSchema(f: FieldDef, o: ValidateOptions): z.ZodType<FieldValue> {
           if (!out.includes(r)) out.push(r);
         }
         return out;
+      });
+    case 'stages':
+      return wrap((v, ctx) => {
+        const lines = Array.isArray(v) ? v.map(String) : String(v).split(/\r?\n/);
+        const stages = parseStages(lines);
+        if (stages.length > 30) {
+          ctx.addIssue({ code: 'custom', message: `${f.label}: please keep it to 30 states.` });
+          return null;
+        }
+        for (const st of stages) {
+          if (st.name.length > 200) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `${f.label}: each state name must be under 200 characters.`,
+            });
+            return null;
+          }
+          if (st.date && !parseDateLoose(st.date)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `${f.label}: "${st.name}" has a date that is not valid.`,
+            });
+            return null;
+          }
+        }
+        if (stages.length === 0 && missing) {
+          ctx.addIssue({ code: 'custom', message: missing });
+          return null;
+        }
+        return stages.map(formatStage);
       });
     case 'checkbox':
       return z.unknown().transform((v, ctx) => {

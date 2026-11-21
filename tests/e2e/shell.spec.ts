@@ -37,21 +37,35 @@ test.describe('navigation', () => {
     );
     await expect(nav.getByRole('link', { name: 'Admin' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Settings' })).toBeVisible();
-    await expect(nav.getByRole('link', { name: '+ New meeting' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Meetings', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Menu' })).toBeHidden();
     const box = await page.locator('aside').boundingBox();
-    expect(box?.width).toBe(240);
+    expect(box?.width).toBe(272);
   });
 
-  test('the New meeting button has one plus sign and fits on one line', async ({ page }, info) => {
+  test('every list in the sidebar has its own Add, as in the sketch, each on one line', async ({
+    page,
+  }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');
-    const button = page
-      .getByRole('navigation', { name: 'Main menu' })
-      .getByRole('link', { name: '+ New meeting' });
-    expect((await button.innerText()).trim()).toBe('+ New meeting');
-    const box = await button.boundingBox();
-    expect(box?.height).toBeLessThan(70);
+    const nav = page.getByRole('navigation', { name: 'Main menu' });
+    const lists: [string, string][] = [
+      ['Meetings', '/meetings/new'],
+      ['Award Plan', '/trackers/award_plan/new'],
+      ['Discussions', '/trackers/discussions/new'],
+      ['DPR', '/trackers/dpr/new'],
+      ['Track', '/trackers/track/new'],
+      ['Under Observation', '/trackers/under_observation/new'],
+    ];
+    for (const [name, href] of lists) {
+      const add = nav.getByRole('link', { name: `Add — ${name}` });
+      await expect(add).toHaveAttribute('href', href);
+      expect((await add.boundingBox())?.height).toBeLessThan(60);
+      // The list's name is never cut in the middle of a word.
+      const link = nav.getByRole('link', { name, exact: true });
+      const fits = await link.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+      expect(fits, `${name} is cut off`).toBe(true);
+    }
   });
 
   test('only built pages are in the sidebar', async ({ page }, info) => {

@@ -29,7 +29,7 @@ test.describe('animations on', () => {
     const errors = watchErrors(page);
     await page.goto('/');
     // The heading animates word by word but keeps its full name for screen readers.
-    await expect(page.getByRole('heading', { level: 1, name: 'Your meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Today at a glance' })).toBeVisible();
     await expect(page.getByText(/^Good (morning|afternoon|evening)/)).toBeVisible();
     await expect(page.locator('main section canvas').first()).toBeAttached();
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'on');
@@ -58,7 +58,7 @@ test.describe('animations on', () => {
     isMobile,
   }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: 'Your meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Today at a glance' })).toBeVisible();
     // On a phone the pages are listed in the Menu drawer.
     if (isMobile) await page.getByRole('button', { name: 'Menu' }).click();
     await page.getByRole('navigation').getByRole('link', { name: 'Settings' }).first().click();
@@ -81,7 +81,7 @@ test.describe('animations on', () => {
 
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'off');
-    await expect(page.getByRole('heading', { level: 1, name: 'Your meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Today at a glance' })).toBeVisible();
     // A still warm wash instead of the moving background.
     await expect(page.locator('main section canvas')).toHaveCount(0);
     await expect(page.locator('main section .warm-wash')).toHaveCount(1);

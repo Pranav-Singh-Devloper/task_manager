@@ -1,4 +1,4 @@
-import type { Cell, CategoryDef, FieldDef, Settings, WorkspaceDef } from './types';
+import type { Cell, CategoryDef, FieldDef, Settings, TrackerDef, WorkspaceDef } from './types';
 
 /** Columns every category tab has at the far right. Hidden in the Sheets UI, never in forms. */
 export const SYSTEM_COLUMNS = [
@@ -52,6 +52,20 @@ export const FIELD_HEADERS = [
   'computed_expr',
   'locked',
   'archived',
+  'created_at',
+] as const;
+
+export const TRACKER_HEADERS = [
+  'slug',
+  'name',
+  'item_name',
+  'kind',
+  'color',
+  'sort',
+  'active',
+  'sheet_gid',
+  'settings',
+  'is_seed',
   'created_at',
 ] as const;
 
@@ -134,6 +148,7 @@ export const TAB = {
   audit: '_audit',
   lookups: '_lookups',
   system: '_system',
+  trackers: '_trackers',
 } as const;
 
 export const FIXED_TAB_HEADERS: Record<string, readonly string[]> = {
@@ -184,6 +199,22 @@ export function categoryToRow(c: CategoryDef): Cell[] {
     c.sheet_gid,
     bool(c.is_seed),
     c.created_at,
+  ];
+}
+
+export function trackerToRow(t: TrackerDef): Cell[] {
+  return [
+    t.slug,
+    t.name,
+    t.item_name,
+    t.kind,
+    t.color,
+    t.sort,
+    bool(t.active),
+    t.sheet_gid,
+    JSON.stringify(t.settings),
+    bool(t.is_seed),
+    t.created_at,
   ];
 }
 

@@ -12,3 +12,6 @@ data/
 *.tsbuildinfo
 next-env.d.ts
 tests/e2e/.auth/
+
+# Owner-supplied reference files (official data). Never commit.
+temp_addons/

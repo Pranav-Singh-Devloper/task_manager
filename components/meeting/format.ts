@@ -1,3 +1,4 @@
+import { currentStage, parseStages } from '@/shared/stages';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { friendlyDate, friendlyTime, todayIn } from '@/shared/dates';
@@ -32,6 +33,11 @@ export function valueText(
 ): string | null {
   if (typeof v === 'boolean') return v ? words.yes : words.no;
   if (v === null || v === undefined || v === '') return null;
+  if (f.type === 'stages' && Array.isArray(v)) {
+    // Where the event is now: the latest state reached.
+    const now = currentStage(parseStages(v.map(String)));
+    return now ? now.stage.name : null;
+  }
   if (Array.isArray(v)) return v.length ? v.join(', ') : null;
   if (typeof v === 'number') return `${NUMBER.format(v)}${f.unit ? ` ${f.unit}` : ''}`;
   if (f.type === 'date') return dateText(v, settings);

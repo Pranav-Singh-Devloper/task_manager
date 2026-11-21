@@ -61,7 +61,7 @@ export function DetailScreen({ id }: { id: string }) {
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="font-semibold">{detail.error?.message ?? t('notFound')}</p>
-        <Link href="/" className={buttonClasses('outline')}>
+        <Link href="/meetings" className={buttonClasses('outline')}>
           {common('back')}
         </Link>
       </div>

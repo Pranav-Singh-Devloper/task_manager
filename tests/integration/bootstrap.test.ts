@@ -154,12 +154,13 @@ describe('migrations', () => {
     const { services } = await createMockGoogle({ seed: 'empty' });
     const { spreadsheetId } = await bootstrap(services);
     const calls: number[] = [];
-    const migrations = [noop(calls, 3), noop(calls, 2)];
+    // Bootstrap has already applied the app's own migrations, so these test versions come after them.
+    const migrations = [noop(calls, 11), noop(calls, 10)];
 
-    expect(await runMigrations(services, spreadsheetId, migrations)).toBe(3);
-    expect(calls).toEqual([2, 3]);
-    expect(await runMigrations(services, spreadsheetId, migrations)).toBe(3);
-    expect(calls).toEqual([2, 3]);
+    expect(await runMigrations(services, spreadsheetId, migrations)).toBe(11);
+    expect(calls).toEqual([10, 11]);
+    expect(await runMigrations(services, spreadsheetId, migrations)).toBe(11);
+    expect(calls).toEqual([10, 11]);
   });
 
   it('restores a _system tab that was deleted by hand', async () => {

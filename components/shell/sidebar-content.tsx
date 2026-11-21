@@ -4,16 +4,11 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GearIcon, HomeIcon, TableIcon } from '../icons';
-import { Glare, Shine } from '../motion';
-import { buttonClasses } from '../ui/button';
-import { NAV_ITEMS, isActive, type NavKey } from './nav-items';
-
-const ICONS: Record<NavKey, typeof HomeIcon> = {
-  dashboard: HomeIcon,
-  admin: TableIcon,
-  settings: GearIcon,
-};
+import type { ReactNode } from 'react';
+import { useMeta } from '@/lib/queries';
+import { CalendarIcon, GearIcon, HomeIcon, TableIcon } from '../icons';
+import { Shine } from '../motion';
+import { isActive } from './nav-items';
 
 /** The app's name and mark, at the top of the sidebar and the drawer. */
 export function Brand() {
@@ -35,41 +30,104 @@ export function Brand() {
   );
 }
 
-/** The navigation shared by the desktop sidebar and the mobile drawer. */
+function NavLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? 'page' : undefined}
+      className={clsx(
+        'flex min-h-tap min-w-0 flex-1 items-center gap-2.5 rounded-xl border-ui px-3 py-1 text-base font-semibold leading-tight transition-colors',
+        active
+          ? 'btn-primary border-accent bg-accent text-accent-ink'
+          : 'border-transparent text-ink hover:bg-sunken',
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+/** "Add" beside a list, as in the owner's sketch: one tap to a new row. Its name says which list. */
+function AddLink({ href, name }: { href: string; name: string }) {
+  const t = useTranslations('nav');
+  return (
+    <Link
+      href={href}
+      className="lift inline-flex min-h-tap min-w-tap shrink-0 items-center justify-center rounded-xl border-ui border-line bg-surface px-2 font-semibold shadow-sm hover:bg-sunken"
+    >
+      {t('add')}
+      <span className="sr-only">{` — ${name}`}</span>
+    </Link>
+  );
+}
+
+/**
+ * The navigation shared by the desktop sidebar and the mobile drawer: the Dashboard, Meetings and every tracker,
+ * each list with its own Add, then Admin and Settings.
+ */
 export function SidebarContent() {
   const t = useTranslations('nav');
   const pathname = usePathname();
+  const meta = useMeta();
+  const trackers = (meta.data?.trackers ?? []).filter((x) => x.active);
 
   return (
     <nav aria-label={t('label')} className="flex flex-col gap-4">
-      <Glare block>
-        {/* Less side padding than other large buttons, so "+ New meeting" stays on one line in the 240 px sidebar. */}
-        <Link href="/meetings/new" className={buttonClasses('primary', 'lg', 'w-full !px-3')}>
-          {t('newMeeting')}
-        </Link>
-      </Glare>
       <ul className="flex flex-col gap-1.5">
-        {NAV_ITEMS.map((item) => {
-          const active = isActive(pathname, item.href);
-          const Icon = ICONS[item.key];
-          return (
-            <li key={item.key}>
-              <Link
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={clsx(
-                  'flex min-h-tap items-center gap-3 rounded-xl border-ui px-4 text-lg font-semibold transition-colors',
-                  active
-                    ? 'btn-primary border-accent bg-accent text-accent-ink'
-                    : 'border-transparent text-ink hover:bg-sunken',
-                )}
-              >
-                <Icon width={22} height={22} />
-                {t(item.key)}
-              </Link>
-            </li>
-          );
-        })}
+        <li className="flex items-center gap-2">
+          <NavLink href="/" active={isActive(pathname, '/')}>
+            <HomeIcon width={22} height={22} />
+            {t('dashboard')}
+          </NavLink>
+        </li>
+        <li className="flex items-center gap-2">
+          <NavLink
+            href="/meetings"
+            active={isActive(pathname, '/meetings') && pathname !== '/meetings/new'}
+          >
+            <CalendarIcon width={22} height={22} />
+            {t('meetings')}
+          </NavLink>
+          <AddLink href="/meetings/new" name={t('meetings')} />
+        </li>
+        {trackers.map((tr) => (
+          <li key={tr.slug} className="flex items-center gap-2">
+            <NavLink
+              href={`/trackers/${tr.slug}`}
+              active={isActive(pathname, `/trackers/${tr.slug}`) && !pathname.endsWith('/new')}
+            >
+              <span
+                aria-hidden="true"
+                className="ml-1 h-3 w-3 shrink-0 rounded-full"
+                style={{ background: tr.color }}
+              />
+              {tr.name}
+            </NavLink>
+            <AddLink href={`/trackers/${tr.slug}/new`} name={tr.name} />
+          </li>
+        ))}
+      </ul>
+      <ul className="flex flex-col gap-1.5 border-t-ui border-soft pt-3">
+        <li className="flex">
+          <NavLink href="/admin" active={isActive(pathname, '/admin')}>
+            <TableIcon width={22} height={22} />
+            {t('admin')}
+          </NavLink>
+        </li>
+        <li className="flex">
+          <NavLink href="/settings" active={isActive(pathname, '/settings')}>
+            <GearIcon width={22} height={22} />
+            {t('settings')}
+          </NavLink>
+        </li>
       </ul>
     </nav>
   );

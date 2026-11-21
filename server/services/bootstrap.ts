@@ -2,6 +2,7 @@ import { SCHEMA_VERSION, TAB, SYSTEM_TAB_HEADERS } from '../../shared/schema';
 import { GoogleApiError } from './google/errors';
 import type { AppState, GoogleServices } from './google/types';
 import { DATABASE_APP_PROPERTIES, createDatabase } from './databaseSeed';
+import { addTrackers } from './migrations';
 
 export interface Migration {
   /** The schema version this migration brings the database to. */
@@ -10,8 +11,8 @@ export interface Migration {
   run: (google: Pick<GoogleServices, 'sheets' | 'drive'>, spreadsheetId: string) => Promise<void>;
 }
 
-/** Version 1 is what createDatabase writes, so there is nothing to migrate yet. */
-export const MIGRATIONS: Migration[] = [];
+/** Version 1 is what createDatabase writes. Every later change to the database's shape is a migration here. */
+export const MIGRATIONS: Migration[] = [{ version: 2, run: addTrackers }];
 
 export interface BootstrapOptions {
   /** SPREADSHEET_ID override. */

@@ -57,11 +57,11 @@ test.describe('keyboard only', () => {
   }, info) => {
     test.skip(info.project.name === 'mobile', 'The phone layout has a menu button first');
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Your meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Today at a glance' })).toBeVisible();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
 
-    // Walk forward until the "+ New meeting" link has focus, checking every stop has a visible outline.
+    // Walk forward until the sidebar's "Add" beside Meetings has focus, checking every stop has a visible outline.
     let reached = false;
     for (let i = 0; i < 25 && !reached; i += 1) {
       await page.keyboard.press('Tab');
@@ -75,7 +75,7 @@ test.describe('keyboard only', () => {
         };
       });
       expect(info.outline || info.shadow, `no visible focus on "${info.name}"`).toBe(true);
-      reached = info.name.startsWith('+ New meeting');
+      reached = info.name.startsWith('Add — Meetings');
     }
     expect(reached).toBe(true);
     await page.keyboard.press('Enter');

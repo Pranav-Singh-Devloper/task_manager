@@ -289,7 +289,9 @@ export function MeetingForm({ mode, meta, categorySlug, meeting, carried }: Prop
           : sync === 'error' || sync === 'pending'
             ? t('savedNoCalendar')
             : t('saved');
-      announce(mode === 'create' ? created : t('changed'), res.undo_token, () => router.push('/'));
+      announce(mode === 'create' ? created : t('changed'), res.undo_token, () =>
+        router.push('/meetings'),
+      );
       router.push(`/meetings/${res.meeting.id}`);
     } catch (e) {
       if (e instanceof NetworkError) setBanner({ kind: 'network' });

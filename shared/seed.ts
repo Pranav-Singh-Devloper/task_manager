@@ -130,9 +130,14 @@ export const INDIAN_STATES_AND_UTS = [
   'Puducherry',
 ];
 
-type FieldSpec = Partial<FieldDef> & Pick<FieldDef, 'key' | 'label' | 'type'>;
+export type FieldSpec = Partial<FieldDef> & Pick<FieldDef, 'key' | 'label' | 'type'>;
 
-function makeField(slug: string, order: number, createdAt: string, spec: FieldSpec): FieldDef {
+export function makeField(
+  slug: string,
+  order: number,
+  createdAt: string,
+  spec: FieldSpec,
+): FieldDef {
   const searchable = !['checkbox', 'file', 'auto_number'].includes(spec.type);
   return {
     category_slug: slug,
@@ -380,4 +385,5 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   file: 'File',
   auto_number: 'Automatic number',
   computed: 'Calculated',
+  stages: 'States with dates',
 };

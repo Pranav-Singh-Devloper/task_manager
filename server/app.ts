@@ -11,6 +11,7 @@ import { healthRouter } from './routes/health';
 import { meetingsRouter } from './routes/meetings';
 import { metaRouter } from './routes/meta';
 import { recoverRouter } from './routes/recover';
+import { trackersRouter } from './routes/trackers';
 import { AppError } from './lib/errors';
 import { DataLayer } from './services/data';
 import { isGoogleApiError } from './services/google/errors';
@@ -48,6 +49,7 @@ export function createApp({ env, google, logger, auth }: AppDeps): Express {
   app.locals.data = data;
   api.use(metaRouter(data));
   api.use(meetingsRouter(data));
+  api.use(trackersRouter(data));
   // Uploads are the heavy request, so they get their own limit (§10).
   api.post(
     '/files',

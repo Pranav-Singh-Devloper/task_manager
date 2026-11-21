@@ -17,13 +17,29 @@ async function ids(page: Page): Promise<string[]> {
 
 const today = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
 
+/**
+ * Some tests need a meeting later today. Late in the evening (India time) there is no "later today" left, so they
+ * are skipped then rather than failing because of the clock.
+ */
+const tooLateToday = () => {
+  const ist = new Date(Date.now() + 5.5 * 3600_000);
+  return ist.getUTCHours() * 60 + ist.getUTCMinutes() >= 21 * 60 + 30;
+};
+
 /** Waits for the list to settle after a search or filter. */
 const settled = (page: Page) => expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
 
+/** The meetings list. It moved from the home page to /meetings when the other lists arrived. */
 async function openDashboard(page: Page, query = '') {
-  await page.goto(`/${query}`);
-  await expect(page.getByRole('heading', { name: 'Your meetings' })).toBeVisible();
+  await page.goto(`/meetings${query}`);
+  await expect(page.getByRole('heading', { name: 'Meetings', level: 1 })).toBeVisible();
   await expect(page.getByText('Loading your meetings…')).toHaveCount(0);
+}
+
+/** The home page: the greeting, the next three meetings, and every list's numbers. */
+async function openHome(page: Page) {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Today at a glance' })).toBeVisible();
 }
 
 /** The calendar has drawn itself and finished fetching its meetings. */
@@ -38,7 +54,7 @@ test.describe('the top of the dashboard', () => {
   test('shows the next three meetings, soonest first, each with Open and, when there is a link, Join', async ({
     page,
   }) => {
-    await openDashboard(page);
+    await openHome(page);
     const card = page
       .locator('section')
       .filter({ has: page.getByRole('heading', { name: 'Next 3 meetings' }) })
@@ -68,7 +84,7 @@ test.describe('the top of the dashboard', () => {
   test('the sidebar still has only the built pages and the page has one main button', async ({
     page,
   }) => {
-    await openDashboard(page);
+    await openHome(page);
     const bg = await page
       .locator('main a, main button')
       .evaluateAll(
@@ -130,6 +146,7 @@ test.describe('upcoming and past', () => {
   });
 
   test('rows are grouped under date headings with Today and Tomorrow', async ({ page }) => {
+    test.skip(tooLateToday(), 'needs a meeting later today');
     const m = await createViaApi(
       page,
       'others',
@@ -260,6 +277,7 @@ test.describe('filters', () => {
   });
 
   test('a number filter compares numbers, and "between" asks for two values', async ({ page }) => {
+    test.skip(tooLateToday(), 'needs a meeting later today');
     const m = await createViaApi(page, 'at', {
       date: today(),
       start_time: '22:00',
@@ -314,6 +332,7 @@ test.describe('filters', () => {
   });
 
   test('"Today" shows only today', async ({ page }) => {
+    test.skip(tooLateToday(), 'needs a meeting later today');
     await createViaApi(
       page,
       'others',
@@ -457,7 +476,7 @@ test.describe('rescheduling from the dashboard', () => {
     await page.getByRole('button', { name: 'Same time tomorrow' }).click(); // 2
     await page.getByRole('button', { name: 'Save new time' }).click(); // 3
 
-    await expect(page.getByRole('heading', { name: 'Your meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Meetings', level: 1 })).toBeVisible();
     await expect(page.getByText('Meeting moved.', { exact: true })).toBeVisible();
     await expect(search(page)).toHaveValue(m.title);
     const moved = (await api(page, `/meetings/${m.id}`)).meeting;

@@ -8,7 +8,13 @@ import { DatabaseMissingError } from '../lib/errors';
 import { KeyedMutex } from '../lib/mutex';
 import { isGoogleApiError } from './google/errors';
 import { ActivityLog, type AuditEntry } from './audit';
-import { buildConfig, type CategoryConfig, type Config } from './config';
+import {
+  buildConfig,
+  type CategoryConfig,
+  type Config,
+  type TabConfig,
+  type TrackerConfig,
+} from './config';
 import { orderOptionsByUse } from './lookups';
 import type { GoogleServices, TabInfo } from './google/types';
 import { parseRow, serializeRow, type RowRecord } from './rows';
@@ -46,6 +52,8 @@ export interface Snapshot {
   tabs: TabInfo[];
   config: Config;
   categories: Map<string, CategoryData>;
+  /** Tracker rows, by tracker slug. Kept apart from meetings so meeting code never sees them. */
+  trackers: Map<string, CategoryData>;
   /** Raw rows of every cached tab, by gid. Row 1 is the header. */
   raw: Map<number, Cell[][]>;
   /** How many times each meeting has been rescheduled, for the "Rescheduled ×N" chip. */
@@ -209,6 +217,7 @@ export class SheetStore {
         fields: rowsOf(TAB.fields),
         workspaces: rowsOf(TAB.workspaces),
         settings: rowsOf(TAB.settings),
+        trackers: rowsOf(TAB.trackers),
       },
       tabs,
     );
@@ -225,6 +234,16 @@ export class SheetStore {
       for (const row of built.toAdopt) adopt.push({ cat: cfg, row });
     }
 
+    const trackers = new Map<string, CategoryData>();
+    const adoptTracker: { cfg: TrackerConfig; row: number }[] = [];
+    for (const cfg of config.byTracker.values()) {
+      const rows = raw.get(cfg.tab.gid) ?? [];
+      const headers = await this.syncHeaders(cfg, headerOf(rows), rows, tabs);
+      const built = this.buildTracker(cfg, headers, rows);
+      trackers.set(cfg.tracker.slug, built.data);
+      for (const row of built.toAdopt) adoptTracker.push({ cfg, row });
+    }
+
     const snap: Snapshot = {
       loadedAt: this.clock().getTime(),
       version: ++this.version,
@@ -232,6 +251,7 @@ export class SheetStore {
       tabs,
       config,
       categories,
+      trackers,
       raw,
       rescheduleCounts: countBy(rowsOf(TAB.reschedules), 'meeting_id'),
       fileNames: fileNamesOf(rowsOf(TAB.files)),
@@ -241,13 +261,110 @@ export class SheetStore {
     this.groupCounts.clear();
 
     await this.adoptRows(snap, adopt);
+    await this.adoptTrackerRows(snap, adoptTracker);
     await this.detectSheetReschedules(previous, snap);
     return snap;
   }
 
+  /** Tracker rows: any row with something in it is kept. A row typed or pasted into the Sheet gets an id. */
+  private buildTracker(
+    cfg: TrackerConfig,
+    headers: string[],
+    rows: Cell[][],
+  ): { data: CategoryData; toAdopt: number[] } {
+    const entries = new Map<string, Entry>();
+    const attention: AttentionItem[] = [];
+    const toAdopt: number[] = [];
+    const seen = new Set<string>();
+    rows.slice(1).forEach((cells, i) => {
+      const row = i + 2;
+      if (isBlankRow(cells)) return;
+      const record = parseRow(headers, cells, cfg.fields);
+      const id = record.system.id;
+      if (!id || seen.has(id)) {
+        toAdopt.push(row);
+        return;
+      }
+      seen.add(id);
+      entries.set(id, { id, row, record });
+      for (const p of record.problems)
+        attention.push({ tab: cfg.tab.title, row, message: `Row ${row}: ${p}` });
+    });
+    return {
+      data: {
+        slug: cfg.tracker.slug,
+        gid: cfg.tab.gid,
+        title: cfg.tab.title,
+        headers,
+        entries,
+        attention,
+      },
+      toAdopt,
+    };
+  }
+
+  /**
+   * Rows typed or pasted straight into a tracker's tab become real rows: an id, a rev, a created time and a number
+   * are written back, and a select left blank gets its default. Logged with source "sheet".
+   */
+  private async adoptTrackerRows(
+    snap: Snapshot,
+    adopt: { cfg: TrackerConfig; row: number }[],
+  ): Promise<void> {
+    if (adopt.length === 0) return;
+    const now = this.clock().toISOString();
+    const blocks: { gid: number; startRow: number; rows: Cell[][] }[] = [];
+    const audits: AuditEntry[] = [];
+    for (const { cfg, row } of adopt) {
+      const data = snap.trackers.get(cfg.tracker.slug) as CategoryData;
+      const rows = snap.raw.get(cfg.tab.gid) as Cell[][];
+      const cells = rows[row - 1] ?? [];
+      const parsed = parseRow(data.headers, cells, cfg.fields);
+      const values: Record<string, FieldValue> = { ...parsed.values };
+      const maxSr = [...data.entries.values()].reduce(
+        (m, e) => Math.max(m, Number(e.record.values.sr_no) || 0),
+        0,
+      );
+      if (cfg.fields.some((f) => f.key === 'sr_no'))
+        values.sr_no = typeof values.sr_no === 'number' ? values.sr_no : maxSr + 1;
+      for (const f of cfg.fields) {
+        if (f.default_value && (values[f.key] === null || values[f.key] === ''))
+          values[f.key] = f.default_value;
+      }
+      const system: SystemFields = {
+        ...parsed.system,
+        id: newId(),
+        rev: 1,
+        created_at: now,
+        updated_at: now,
+        created_by: 'sheet',
+        deleted_at: '',
+        calendar_sync: '',
+      };
+      const next = serializeRow(data.headers, cells, values, system, cfg.fields);
+      rows[row - 1] = next;
+      data.entries.set(system.id, {
+        id: system.id,
+        row,
+        record: { values, system, problems: parsed.problems },
+      });
+      blocks.push({ gid: cfg.tab.gid, startRow: row, rows: [next] });
+      audits.push({
+        user: 'sheet',
+        action: 'create',
+        table: cfg.tab.title,
+        rowId: system.id,
+        source: 'sheet',
+      });
+    }
+    await this.google.sheets.writeBlocks(this.spreadsheetId, blocks);
+    this.bump(snap);
+    await this.log.audit(...audits);
+  }
+
   /** A field added in the config (or a system column) that the tab's header lacks is appended to the header. */
   private async syncHeaders(
-    cfg: CategoryConfig,
+    cfg: TabConfig,
     headers: string[],
     rows: Cell[][],
     tabs: TabInfo[],
@@ -521,20 +638,27 @@ export class SheetStore {
   async reindexTab(slug: string): Promise<void> {
     const snap = await this.snapshot();
     const cfg = snap.config.byCategory.get(slug);
-    if (!cfg) return;
+    const tracker = snap.config.byTracker.get(slug);
+    const tab = cfg ?? tracker;
+    if (!tab) return;
     const rows =
-      (await this.google.sheets.batchGet(this.spreadsheetId, [cfg.tab.gid]))[cfg.tab.gid] ?? [];
-    const headers = await this.syncHeaders(cfg, headerOf(rows), rows, snap.tabs);
-    const built = this.buildCategory(cfg, headers, rows);
-    snap.raw.set(cfg.tab.gid, rows);
-    snap.categories.set(slug, built.data);
+      (await this.google.sheets.batchGet(this.spreadsheetId, [tab.tab.gid]))[tab.tab.gid] ?? [];
+    const headers = await this.syncHeaders(tab, headerOf(rows), rows, snap.tabs);
+    snap.raw.set(tab.tab.gid, rows);
+    if (cfg) snap.categories.set(slug, this.buildCategory(cfg, headers, rows).data);
+    else if (tracker) snap.trackers.set(slug, this.buildTracker(tracker, headers, rows).data);
     this.bump(snap);
+  }
+
+  /** The rows of a meeting category or a tracker. */
+  private dataOf(snap: Snapshot | null, slug: string): CategoryData | undefined {
+    return snap?.categories.get(slug) ?? snap?.trackers.get(slug);
   }
 
   /** Records a row that was just written to the Sheet. */
   applyRow(slug: string, row: number, cells: Cell[], record: RowRecord): void {
     const snap = this.snap;
-    const data = snap?.categories.get(slug);
+    const data = this.dataOf(snap, slug);
     if (!snap || !data) return;
     const rows = snap.raw.get(data.gid) as Cell[][];
     while (rows.length < row) rows.push([]);
@@ -553,7 +677,7 @@ export class SheetStore {
 
   /** The 1-based row where the next appended row will land. */
   nextRow(slug: string): number {
-    const data = this.snap?.categories.get(slug);
+    const data = this.dataOf(this.snap, slug);
     const rows = data ? (this.snap?.raw.get(data.gid) ?? []) : [];
     let last = rows.length;
     while (last > 1 && isBlankRow(rows[last - 1] ?? [])) last -= 1;

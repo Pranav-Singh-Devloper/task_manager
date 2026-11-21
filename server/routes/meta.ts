@@ -14,9 +14,13 @@ export function metaRouter(data: DataLayer): Router {
       fields: config.fields,
       workspaces: config.workspaces,
       settings: config.settings,
+      trackers: config.trackers,
+      trackerFields: config.trackerFields,
       // Config rows that were skipped, and cells that could not be read, in plain words.
       problems: config.problems,
-      attention: [...snap.categories.values()].flatMap((c) => c.attention),
+      attention: [...snap.categories.values(), ...snap.trackers.values()].flatMap(
+        (c) => c.attention,
+      ),
     });
   });
 

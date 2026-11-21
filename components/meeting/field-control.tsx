@@ -10,6 +10,7 @@ import {
   RadioChips,
   Textarea,
 } from '@/components/ui';
+import { StagesControl } from '@/components/trackers/stages-control';
 import type { FieldDef } from '@/shared/types';
 
 /** Radio chips for short lists, a combobox for long ones (§7.4). */
@@ -68,6 +69,21 @@ export function FieldControl({ field, value, onChange, error, computed, quickDat
   }
 
   switch (field.type) {
+    case 'stages':
+      return (
+        <FormField {...base} group>
+          {(c) => (
+            <StagesControl
+              value={value}
+              onChange={onChange}
+              labelId={c.labelId}
+              describedBy={c['aria-describedby']}
+              today={quickDates?.today ?? new Date().toISOString().slice(0, 10)}
+            />
+          )}
+        </FormField>
+      );
+
     case 'long_text':
       return (
         <FormField {...base}>

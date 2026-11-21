@@ -43,7 +43,8 @@ export async function learnOptions(
   onlyKeys?: string[],
 ): Promise<void> {
   const snap = await store.snapshot();
-  const cfg = snap.config.byCategory.get(slug);
+  // Meeting categories and trackers learn new dropdown values the same way.
+  const cfg = snap.config.byCategory.get(slug) ?? snap.config.byTracker.get(slug);
   if (!cfg) return;
 
   const used: { field: FieldDef; value: string }[] = [];

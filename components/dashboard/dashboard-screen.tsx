@@ -3,8 +3,10 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Button, Chip, Segmented, useToast } from '@/components/ui';
+import { PageTitle } from '@/components/motion';
+import { Button, Chip, Segmented, buttonClasses, useToast } from '@/components/ui';
 import { api } from '@/lib/api';
 import { isFiltered, toApiQuery, type Tab, type View } from '@/lib/dashboard-params';
 import { useMeta, type Meta } from '@/lib/queries';
@@ -16,8 +18,6 @@ import { ActiveFilters, FilterBuilder } from './filter-builder';
 import { MeetingCards } from './meeting-cards';
 import { MeetingTable } from './meeting-table';
 import { useDashboard } from './use-dashboard';
-import { NextMeetings } from './next-meetings';
-import { Welcome } from './welcome';
 
 // The calendar is large and only needed when it is chosen, so it loads then.
 function CalendarLoading() {
@@ -65,6 +65,7 @@ export function DashboardScreen() {
 
 function Dashboard({ meta }: { meta: Meta }) {
   const t = useTranslations('dashboard');
+  const nav = useTranslations('nav');
   const common = useTranslations('common');
   const { params, update, clear, here } = useDashboard();
   const mobile = useIsMobile();
@@ -161,15 +162,12 @@ function Dashboard({ meta }: { meta: Meta }) {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      {/* The greeting beside the next three meetings on a wide screen, one above the other on a phone. */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]">
-        <Welcome settings={settings} />
-        <NextMeetings
-          meetings={summary.data?.upcoming ?? []}
-          meta={meta}
-          settings={settings}
-          pending={summary.isPending}
-        />
+      {/* The greeting and the next three meetings are on the home page; this page is the full list. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageTitle>{nav('meetings')}</PageTitle>
+        <Link href="/meetings/new" className={buttonClasses('primary')}>
+          {nav('newMeeting')}
+        </Link>
       </div>
 
       {/* One plain sentence for each thing that needs a look, each with a button (§7.2). */}

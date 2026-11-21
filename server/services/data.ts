@@ -1,10 +1,12 @@
 import type { Logger } from 'pino';
 import { NotSetUpError } from '../lib/errors';
+import { MIGRATIONS, runMigrations } from './bootstrap';
 import type { GoogleServices } from './google/types';
 import { CalendarService } from './calendarService';
 import { FileService } from './files';
 import { MeetingService } from './meetings';
 import { SheetStore } from './store';
+import { TrackerService } from './trackers';
 import { UndoService } from './undo';
 
 export interface DataLayerOptions {
@@ -22,6 +24,7 @@ export interface DataContext {
   meetings: MeetingService;
   calendar: CalendarService;
   files: FileService;
+  trackers: TrackerService;
 }
 
 /**
@@ -44,6 +47,8 @@ export class DataLayer {
     const id = state?.activeSpreadsheetId;
     if (!id) throw new NotSetUpError();
     if (this.current?.id !== id) {
+      await this.migrate(id);
+      if (this.current?.id === id) return this.current.ctx;
       const store = new SheetStore(this.google, id, this.options);
       const meetings = new MeetingService(store, this.undo);
       const calendar = new CalendarService(store, meetings, {
@@ -58,8 +63,31 @@ export class DataLayer {
           return Math.floor(mb * 1024 * 1024);
         },
       });
-      this.current = { id, ctx: { store, meetings, calendar, files } };
+      const trackers = new TrackerService(store);
+      this.current = { id, ctx: { store, meetings, calendar, files, trackers } };
     }
     return this.current.ctx;
+  }
+
+  private migrated = new Map<string, Promise<void>>();
+
+  /**
+   * Brings a database up to date the first time this server uses it, so a database made before a new feature gets
+   * its tabs without waiting for the owner's next sign-in. A failure is logged and retried next time: the rest of
+   * the app keeps working.
+   */
+  private migrate(id: string): Promise<void> {
+    let run = this.migrated.get(id);
+    if (!run) {
+      run = runMigrations(this.google, id, MIGRATIONS).then(
+        () => undefined,
+        (err: unknown) => {
+          this.migrated.delete(id);
+          this.options.logger.warn({ err }, 'could not bring the database up to date');
+        },
+      );
+      this.migrated.set(id, run);
+    }
+    return run;
   }
 }

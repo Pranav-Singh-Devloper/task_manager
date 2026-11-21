@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import { useMeta } from '@/lib/queries';
 import { CloseIcon, MenuIcon } from '../icons';
 import { Sparkles } from '../motion';
 import { Button, buttonClasses } from '../ui/button';
@@ -21,7 +22,12 @@ import { UserNameContext } from './user-name';
  */
 export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {
   const t = useTranslations('nav');
+  const tr = useTranslations('trackers');
   const pathname = usePathname();
+  const meta = useMeta();
+  // On a tracker's pages the floating button adds to that tracker; everywhere else it adds a meeting.
+  const trackerSlug = /^\/trackers\/([^/]+)/.exec(pathname)?.[1];
+  const tracker = meta.data?.trackers.find((x) => x.slug === trackerSlug);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const current = NAV_ITEMS.find((i) => isActive(pathname, i.href));
 
@@ -34,8 +40,8 @@ export function AppShell({ userName, children }: { userName: string; children: R
 
   return (
     <UserNameContext.Provider value={userName}>
-      <Sparkles className="min-h-screen md:pl-[240px]">
-        <aside className="glass fixed inset-y-0 left-0 hidden w-[240px] overflow-y-auto border-r-ui border-soft p-4 md:flex md:flex-col md:gap-6">
+      <Sparkles className="min-h-screen md:pl-[272px]">
+        <aside className="glass fixed inset-y-0 left-0 hidden w-[272px] overflow-y-auto border-r-ui border-soft p-4 md:flex md:flex-col md:gap-6">
           <Brand />
           <SidebarContent />
         </aside>
@@ -99,14 +105,14 @@ export function AppShell({ userName, children }: { userName: string; children: R
 
         {!isFormPage(pathname) && (
           <Link
-            href="/meetings/new"
+            href={tracker ? `/trackers/${tracker.slug}/new` : '/meetings/new'}
             className={buttonClasses(
               'primary',
               'lg',
               'fixed bottom-4 right-4 z-30 !rounded-full !shadow-lg md:hidden',
             )}
           >
-            {t('newMeeting')}
+            {tracker ? tr('addPlus', { item: tracker.item_name }) : t('newMeeting')}
           </Link>
         )}
       </Sparkles>

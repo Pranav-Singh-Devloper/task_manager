@@ -21,7 +21,7 @@ function hourIn(timezone: string, now: Date): number {
 }
 
 /** The top of the dashboard: a warm greeting, the page heading and today's date, over a slowly drifting background. */
-export function Welcome({ settings }: { settings: Settings }) {
+export function Welcome({ settings, title }: { settings: Settings; title?: string }) {
   const t = useTranslations('dashboard');
   const name = useUserName().split(' ')[0] ?? '';
   const now = new Date();
@@ -37,7 +37,7 @@ export function Welcome({ settings }: { settings: Settings }) {
         <p className="font-display text-lg font-semibold text-accent">
           {name ? t('greetName', { greeting, name }) : greeting}
         </p>
-        <PageTitle>{t('title')}</PageTitle>
+        <PageTitle>{title ?? t('title')}</PageTitle>
         <FocusText text={t('todayIs', { date: today })} />
       </div>
     </section>
