@@ -65,13 +65,18 @@ test.describe('creating a meeting', () => {
     await expect(field(page, 'project_name')).toBeFocused();
   });
 
-  test('the AT form has its own fields and a number box with its unit', async ({ page }) => {
-    await page.goto('/meetings/new?category=at');
-    await expect(page.locator('#field-name_of_project')).toBeVisible();
-    await expect(page.locator('#field-length')).toContainText('km');
-    await expect(field(page, 'civil_cost')).toHaveAttribute('inputmode', 'decimal');
+  test('AT (Award Target) is no longer a kind of meeting: its fields live in the Award Plan list', async ({
+    page,
+  }) => {
+    await page.goto('/meetings/new');
+    await expect(page.getByRole('link', { name: 'Others', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'AT (Award Target)' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'File Discussion' })).toHaveCount(0);
+    // The project's numbers, with their units, are in the Award Plan form instead.
+    await page.goto('/trackers/award_plan/new');
+    await expect(page.locator('#field-length_km')).toContainText('km');
+    await expect(page.locator('#input-civil_cost')).toHaveAttribute('inputmode', 'decimal');
     await expect(page.locator('#field-civil_cost')).toContainText('₹ Cr');
-    // Mode has three options and learns, so it is a combobox with room to add.
     await expect(page.getByRole('combobox', { name: /Mode/ })).toBeVisible();
   });
 
@@ -545,7 +550,7 @@ test.describe('accessibility and layout on the new screens', () => {
   const screens: [string, (page: Page) => Promise<string>][] = [
     ['the category picker', async () => '/meetings/new'],
     ['the CCIE form', async () => '/meetings/new?category=ccie'],
-    ['the AT form', async () => '/meetings/new?category=at'],
+    ['the Award Plan form', async () => '/trackers/award_plan/new'],
     ['the add-a-category page', async () => '/categories/new'],
     ['the meeting page', async (p) => `/meetings/${(await createViaApi(p, 'ccie', ccie())).id}`],
     ['the edit page', async (p) => `/meetings/${(await createViaApi(p, 'ccie', ccie())).id}/edit`],

@@ -388,3 +388,16 @@ describe('migration 3: calendar for Discussions and Award Plan', () => {
     expect(after.find((t) => t.slug === 'dpr')?.settings.calendar).toBe(false);
   });
 });
+
+describe('migration 4: meeting kinds that are now lists', () => {
+  it('hides AT (Award Target) and File Discussion, and keeps their meetings', async () => {
+    const { f } = await setup();
+    const snap = await f.store.snapshot();
+    const kind = (slug: string) => snap.config.categories.find((c) => c.slug === slug);
+    expect(kind('at')?.active).toBe(false);
+    expect(kind('file_discussion')?.active).toBe(false);
+    expect(kind('ccie')?.active).toBe(true);
+    // Their meetings are still there.
+    expect(snap.categories.get('at')?.entries.size).toBeGreaterThan(0);
+  });
+});

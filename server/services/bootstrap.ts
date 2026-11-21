@@ -2,7 +2,7 @@ import { SCHEMA_VERSION, TAB, SYSTEM_TAB_HEADERS } from '../../shared/schema';
 import { GoogleApiError } from './google/errors';
 import type { AppState, GoogleServices } from './google/types';
 import { DATABASE_APP_PROPERTIES, createDatabase } from './databaseSeed';
-import { addTrackers, calendarForSeedLists } from './migrations';
+import { addTrackers, calendarForSeedLists, hideKindsNowLists } from './migrations';
 
 export interface Migration {
   /** The schema version this migration brings the database to. */
@@ -15,6 +15,7 @@ export interface Migration {
 export const MIGRATIONS: Migration[] = [
   { version: 2, run: addTrackers },
   { version: 3, run: calendarForSeedLists },
+  { version: 4, run: hideKindsNowLists },
 ];
 
 export interface BootstrapOptions {

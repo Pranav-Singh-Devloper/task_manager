@@ -159,3 +159,36 @@ export async function calendarForSeedLists(google: Google, spreadsheetId: string
   });
   if (blocks.length > 0) await sheets.writeBlocks(spreadsheetId, blocks);
 }
+
+/** Meeting kinds that became lists of their own (2026-11-22): AT (Award Target) → Award Plan, File Discussion → Discussions. */
+export const KINDS_NOW_LISTS = ['at', 'file_discussion'];
+
+/**
+ * Version 4: hides the meeting kinds that are now lists, as the owner asked. They are no longer offered for a new
+ * meeting or in the Meetings filter; meetings already saved under them stay in the list and in the Sheet, and Admin
+ * can show a kind again.
+ */
+export async function hideKindsNowLists(google: Google, spreadsheetId: string): Promise<void> {
+  const { sheets } = google;
+  const tab = (await sheets.getTabs(spreadsheetId)).find((t) => t.title === TAB.categories);
+  if (!tab) return;
+  const rows = (await sheets.batchGet(spreadsheetId, [tab.gid]))[tab.gid] ?? [];
+  const headers = (rows[0] ?? []).map((c) => String(c ?? '').trim());
+  const slugCol = headers.indexOf('slug');
+  const activeCol = headers.indexOf('active');
+  const seedCol = headers.indexOf('is_seed');
+  if (slugCol < 0 || activeCol < 0) return;
+  const blocks: { gid: number; startRow: number; rows: Cell[][] }[] = [];
+  rows.forEach((r, i) => {
+    if (i === 0) return;
+    const slug = String(r[slugCol] ?? '').trim();
+    // Only the app's own starting kinds: a kind someone made with the same short name is theirs.
+    const seeded = seedCol < 0 || /^true$/i.test(String(r[seedCol] ?? '')) || r[seedCol] === true;
+    if (!KINDS_NOW_LISTS.includes(slug) || !seeded) return;
+    const next = [...r];
+    while (next.length <= activeCol) next.push('');
+    next[activeCol] = 'FALSE';
+    blocks.push({ gid: tab.gid, startRow: i + 1, rows: [next] });
+  });
+  if (blocks.length > 0) await sheets.writeBlocks(spreadsheetId, blocks);
+}
