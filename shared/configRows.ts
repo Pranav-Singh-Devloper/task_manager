@@ -94,6 +94,7 @@ function trackerSettings(raw: string): { settings: TrackerSettings; ok: boolean 
   const fallback: TrackerSettings = {
     roles: fullRoles(undefined),
     targets: { km: null, cr: null },
+    calendar: false,
   };
   if (!raw) return { settings: fallback, ok: true };
   try {
@@ -112,6 +113,7 @@ function trackerSettings(raw: string): { settings: TrackerSettings; ok: boolean 
           sum_keys: asList(roles.sum_keys),
         },
         targets: { km: asNum(parsed.targets?.km), cr: asNum(parsed.targets?.cr) },
+        calendar: parsed.calendar === true,
       },
       ok: true,
     };

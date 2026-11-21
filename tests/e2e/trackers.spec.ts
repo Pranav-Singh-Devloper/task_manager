@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { uid } from './meetings.helpers';
+import { createViaApi, others, uid, ulid } from './meetings.helpers';
 
 async function serious(page: Page) {
   const results = await new AxeBuilder({ page })
@@ -182,5 +182,44 @@ test.describe('a new list', () => {
     await page.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Bridge at Km 12' })).toBeVisible();
+  });
+});
+
+test.describe('lists and meetings together', () => {
+  test('a meeting with Member(T) shows the open topics to raise with them', async ({ page }) => {
+    const m = await createViaApi(
+      page,
+      'others',
+      others({ topic: `Meeting with Member(T) ${uid()}` }),
+    );
+    await page.goto(`/meetings/${m.id}`);
+    const card = page.locator('div').filter({
+      has: page.getByRole('heading', { name: /topics? to raise with Member\(T\)/ }),
+    });
+    await expect(
+      card.getByRole('link', { name: 'File 4521: extension of time' }).first(),
+    ).toBeVisible();
+    // A finished topic is not listed.
+    await expect(page.getByRole('link', { name: 'Toll plaza shifting' })).toHaveCount(0);
+  });
+
+  test('a row moved to the Trash from a list can be restored in Admin', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Admin works best on a computer');
+    const name = `Trash me ${uid()}`;
+    const id = ulid();
+    const headers = { 'X-Requested-With': 'mm' };
+    const made = await page.request.post('/api/trackers/under_observation/rows', {
+      headers,
+      data: { id, values: { work: name } },
+    });
+    const { row } = (await made.json()) as { row: { rev: number } };
+    await page.request.delete(`/api/trackers/under_observation/rows/${id}?rev=${row.rev}`, {
+      headers,
+    });
+    await page.goto('/admin/trash');
+    await page.getByRole('button', { name: `Restore — ${name}` }).click();
+    await expect(page.getByText(`Restored ${name}`)).toBeVisible();
+    await page.goto(`/trackers/under_observation?q=${encodeURIComponent(name)}`);
+    await expect(page.getByRole('link', { name })).toHaveCount(1, { timeout: 10000 });
   });
 });

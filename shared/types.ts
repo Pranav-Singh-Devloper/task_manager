@@ -140,6 +140,8 @@ export interface TrackerTargets {
 export interface TrackerSettings {
   roles: TrackerRoles;
   targets: TrackerTargets;
+  /** Put each open row's "date that matters" on Google Calendar as an all-day event. */
+  calendar: boolean;
 }
 
 export interface TrackerDef {

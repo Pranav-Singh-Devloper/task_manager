@@ -63,7 +63,10 @@ export class DataLayer {
           return Math.floor(mb * 1024 * 1024);
         },
       });
-      const trackers = new TrackerService(store);
+      const trackers = new TrackerService(store, {
+        appUrl: this.options.appUrl,
+        logger: this.options.logger,
+      });
       this.current = { id, ctx: { store, meetings, calendar, files, trackers } };
     }
     return this.current.ctx;

@@ -34,8 +34,12 @@ export class LiveCalendar implements CalendarClient {
       id: e.id ?? eventId,
       summary: e.summary ?? '',
       description: e.description ?? '',
-      start: { dateTime: e.start?.dateTime ?? '', timeZone: e.start?.timeZone ?? '' },
-      end: { dateTime: e.end?.dateTime ?? '', timeZone: e.end?.timeZone ?? '' },
+      start: e.start?.date
+        ? { date: e.start.date }
+        : { dateTime: e.start?.dateTime ?? '', timeZone: e.start?.timeZone ?? '' },
+      end: e.end?.date
+        ? { date: e.end.date }
+        : { dateTime: e.end?.dateTime ?? '', timeZone: e.end?.timeZone ?? '' },
       location: e.location ?? undefined,
       reminders: {
         useDefault: false,

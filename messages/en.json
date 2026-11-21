@@ -282,6 +282,7 @@
     "removeColumnWarning": "This deletes the column and all its answers. A backup is made first.",
     "trashIntro": "Meetings you deleted wait here. Restore brings one back with its calendar event.",
     "trashEmpty": "The Trash is empty.",
+    "listTrashTitle": "From the other lists",
     "deletedOn": "Deleted {when}",
     "restore": "Restore",
     "restored": "Restored {name}.",
@@ -497,6 +498,7 @@
     "next": "Next meeting",
     "noSeries": "This meeting is not linked to others.",
     "rescheduleHistory": "Reschedule history",
+    "topicsTitle": "{count, plural, one {1 topic to raise with {who}} other {# topics to raise with {who}}}",
     "noReschedules": "Not rescheduled.",
     "changedOn": "Changed on {when}",
     "reasonIs": "Reason: {reason}",
@@ -841,6 +843,7 @@
     "roleStages": "States column",
     "roleNone": "None",
     "listActive": "Show this list",
+    "listCalendar": "Put the date that matters on Google Calendar (open rows only, as all-day events)",
     "saveSettings": "Save settings",
     "settingsSaved": "Settings saved."
   }

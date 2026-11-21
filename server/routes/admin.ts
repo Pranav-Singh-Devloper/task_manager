@@ -243,6 +243,7 @@ export function adminRouter(data: DataLayer): Router {
         item_name: z.string().max(200).optional(),
         color: z.string().max(20).optional(),
         active: z.boolean().optional(),
+        calendar: z.boolean().optional(),
         roles: z
           .object({
             title_key: key,
@@ -260,8 +261,12 @@ export function adminRouter(data: DataLayer): Router {
       }),
       req.body,
     );
-    const { store } = await data.use();
-    res.json({ tracker: await updateTracker(store, String(req.params.slug), body, actorOf(req)) });
+    const ctx = await data.use();
+    const slug = String(req.params.slug);
+    const tracker = await updateTracker(ctx.store, slug, body, actorOf(req));
+    // Turning the calendar on or off, or changing the date column, adds or removes events.
+    await ctx.trackers.resync(slug);
+    res.json({ tracker });
   });
 
   // ---- trash ----

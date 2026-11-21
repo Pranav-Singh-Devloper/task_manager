@@ -102,12 +102,15 @@ export interface DriveClient {
 
 // ---------- Calendar ----------
 
+export type EventTime = { dateTime: string; timeZone: string } | { date: string };
+
 export interface CalendarEventInput {
   id: string;
   summary: string;
   description: string;
-  start: { dateTime: string; timeZone: string };
-  end: { dateTime: string; timeZone: string };
+  /** A timed event (meetings), or an all-day one (a list's date, such as a bid due date). */
+  start: EventTime;
+  end: EventTime;
   location?: string;
   reminders: { useDefault: false; overrides: { method: 'popup'; minutes: number }[] };
   extendedProperties: { private: Record<string, string> };

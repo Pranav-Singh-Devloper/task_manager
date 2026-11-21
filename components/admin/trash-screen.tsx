@@ -1,13 +1,13 @@
 'use client';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button, buttonClasses, Chip } from '@/components/ui';
 import { stampText } from '@/components/meeting/format';
 import { ApiError, api } from '@/lib/api';
-import { useMeta } from '@/lib/queries';
+import { useMeta, type TrackerData } from '@/lib/queries';
 import type { Meeting } from '@/shared/meeting';
 import { TypedConfirm } from './typed-confirm';
 
@@ -109,6 +109,74 @@ export function TrashScreen() {
           })}
         </ul>
       )}
+      <ListTrash />
+    </section>
+  );
+}
+
+/** Rows moved to the Trash from the other lists (Award Plan, DPR…), each with Restore. */
+function ListTrash() {
+  const t = useTranslations('admin');
+  const client = useQueryClient();
+  const meta = useMeta();
+  const lists = meta.data?.trackers ?? [];
+  const results = useQueries({
+    queries: lists.map((x) => ({
+      queryKey: ['tracker', x.slug, 'deleted'],
+      queryFn: () => api<TrackerData>(`/trackers/${x.slug}/rows?deleted=1`),
+    })),
+  });
+  const [message, setMessage] = useState('');
+  const rows = results.flatMap((r, i) => {
+    const list = lists[i];
+    if (!r.data || !list) return [];
+    return r.data.rows.map((row) => ({
+      row,
+      list,
+      title: String(row.values[list.settings.roles.title_key] ?? '') || list.name,
+    }));
+  });
+  // Stays on screen after the last row is restored, so its "Restored …" message can be read.
+  if ((rows.length === 0 && !message) || !meta.data) return null;
+  const settings = meta.data.settings;
+
+  async function restore(slug: string, id: string, title: string) {
+    setMessage('');
+    try {
+      await api(`/trackers/${slug}/rows/${id}/restore`, { method: 'POST' });
+      await client.invalidateQueries();
+      setMessage(t('restored', { name: title }));
+    } catch (e) {
+      setMessage(e instanceof ApiError ? e.message : t('cellFailed'));
+    }
+  }
+
+  return (
+    <section aria-labelledby="list-trash-heading" className="flex flex-col gap-3">
+      <h3 id="list-trash-heading" className="text-2xl font-semibold">
+        {t('listTrashTitle')}
+      </h3>
+      <p role="status" className="min-h-6 font-semibold">
+        {message}
+      </p>
+      <ul className="flex flex-col gap-3">
+        {rows.map(({ row, list, title }) => (
+          <li
+            key={row.id}
+            className="flex flex-wrap items-center gap-3 rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm"
+          >
+            <span className="text-lg font-semibold">{title}</span>
+            <Chip color={list.color}>{list.name}</Chip>
+            <span className="flex-1 text-muted">
+              {t('deletedOn', { when: stampText(row.deleted_at, settings) })}
+            </span>
+            <Button onClick={() => void restore(list.slug, row.id, title)}>
+              {t('restore')}
+              <span className="sr-only">{` — ${title}`}</span>
+            </Button>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -14,6 +14,7 @@ import type { FieldDef } from '@/shared/types';
 import { useToast } from '@/components/ui';
 import { dateText, fullDate, stampText, timeText, valueText } from './format';
 import { FilesField } from './files-field';
+import { TopicsToRaise } from './topics-to-raise';
 import { StatusChip } from './status-chip';
 import { PageTitle } from '@/components/motion';
 
@@ -350,6 +351,9 @@ function Loaded({ meeting, previous, next, meta, history, labels, reminderLabel,
         </Card>
 
         <div className="flex flex-col gap-4">
+          {!deleted && (
+            <TopicsToRaise meta={meta} title={meeting.title} categoryName={category?.name ?? ''} />
+          )}
           <Card className={CARD}>
             <CardTitle>{t('files')}</CardTitle>
             <FilesField

@@ -15,6 +15,8 @@ interface SeedTracker {
   tabTitle: string;
   color: string;
   roles: Partial<TrackerRoles>;
+  /** On Google Calendar by default: the owner wants discussion dates and bid due dates there. */
+  calendar?: boolean;
   fields: FieldSpec[];
 }
 
@@ -34,6 +36,7 @@ export const SEED_TRACKERS: SeedTracker[] = [
     itemName: 'project',
     kind: 'award',
     tabTitle: 'Award Plan',
+    calendar: true,
     color: CATEGORY_PALETTE[2],
     roles: {
       title_key: 'project',
@@ -92,6 +95,7 @@ export const SEED_TRACKERS: SeedTracker[] = [
     itemName: 'discussion',
     kind: 'discussion',
     tabTitle: 'Discussions',
+    calendar: true,
     color: CATEGORY_PALETTE[0],
     roles: {
       title_key: 'topic',
@@ -298,7 +302,11 @@ export function buildSeedTrackers(createdAt: string, startSort = 1): SeedTracker
       sort: startSort + i,
       active: true,
       sheet_gid: null,
-      settings: { roles: fullRoles(s.roles), targets: { km: null, cr: null } },
+      settings: {
+        roles: fullRoles(s.roles),
+        targets: { km: null, cr: null },
+        calendar: Boolean(s.calendar),
+      },
       is_seed: true,
       created_at: createdAt,
     },

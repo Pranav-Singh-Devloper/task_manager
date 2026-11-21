@@ -282,3 +282,75 @@ describe('a new list (ADD++)', () => {
     expect(made.slug).toBe('new_2');
   });
 });
+
+describe('lists on Google Calendar', () => {
+  const events = (f: Awaited<ReturnType<typeof setup>>['f']) =>
+    [...(f.mock.world.calendars.get('primary')?.values() ?? [])].filter(
+      (e) => e.status !== 'cancelled' && e.extendedProperties.private.mmTracker,
+    );
+
+  it('puts an open discussion on the calendar as an all-day event, and takes it off when done', async () => {
+    const { f, trackers } = await setup();
+    const id = newId();
+    await trackers.create(
+      'discussions',
+      { id, values: { discussion_with: 'Member(T)', topic: 'EoT file', date: '2030-05-10' } },
+      dad,
+    );
+    await trackers.settle();
+    const ev = events(f).find((e) => e.extendedProperties.private.mmTrackerRowId === id)!;
+    expect(ev.summary).toBe('[Discussions] EoT file (Member(T))');
+    expect(ev.start).toEqual({ date: '2030-05-10' });
+    expect(ev.end).toEqual({ date: '2030-05-11' });
+    expect(ev.description).toContain(`/trackers/discussions/${id}`);
+    const row = await trackers.get('discussions', id);
+    expect(row.rev).toBe(1); // recording the calendar never changes the rev
+
+    await trackers.update('discussions', id, { values: { status: 'Done' }, rev: 1 }, dad);
+    await trackers.settle();
+    expect(events(f).some((e) => e.extendedProperties.private.mmTrackerRowId === id)).toBe(false);
+  });
+
+  it('puts a bid due date on the calendar, keeps DPR dates off it, and follows the setting', async () => {
+    const { f, trackers } = await setup();
+    const bid = newId();
+    await trackers.create(
+      'award_plan',
+      { id: bid, values: { project: 'Bypass', bdd: '2030-01-15' } },
+      dad,
+    );
+    const dpr = newId();
+    await trackers.create(
+      'dpr',
+      { id: dpr, values: { project: 'Some DPR', completion_date: '2030-01-20' } },
+      dad,
+    );
+    await trackers.settle();
+    expect(events(f).some((e) => e.extendedProperties.private.mmTrackerRowId === bid)).toBe(true);
+    expect(events(f).some((e) => e.extendedProperties.private.mmTrackerRowId === dpr)).toBe(false);
+
+    const { updateTracker } = await import('../../server/services/admin/trackers');
+    await updateTracker(f.store, 'award_plan', { calendar: false }, dad);
+    await trackers.resync('award_plan');
+    expect(events(f).some((e) => e.extendedProperties.private.mmTrackerRowId === bid)).toBe(false);
+  });
+
+  it('a calendar failure is kept as "error" and retried later', async () => {
+    const { f, trackers } = await setup();
+    f.mock.failures.load('calendar');
+    const id = newId();
+    await trackers.create(
+      'discussions',
+      { id, values: { discussion_with: 'Chairman', topic: 'Plan', date: '2030-02-01' } },
+      dad,
+    );
+    await trackers.settle();
+    const snap = await f.store.snapshot();
+    expect(snap.trackers.get('discussions')!.entries.get(id)!.record.system.calendar_sync).toBe(
+      'error',
+    );
+    f.mock.failures.clear();
+    expect(await trackers.resync()).toMatchObject({ failed: 0 });
+    expect(events(f).some((e) => e.extendedProperties.private.mmTrackerRowId === id)).toBe(true);
+  });
+});

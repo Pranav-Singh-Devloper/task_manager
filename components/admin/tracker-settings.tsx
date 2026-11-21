@@ -20,6 +20,7 @@ export function TrackerSettings({ tracker, fields }: { tracker: TrackerDef; fiel
   const [itemName, setItemName] = useState(tracker.item_name);
   const [color, setColor] = useState(tracker.color);
   const [active, setActive] = useState(tracker.active);
+  const [calendar, setCalendar] = useState(tracker.settings.calendar);
   const [roles, setRoles] = useState<TrackerRoles>(tracker.settings.roles);
   const [closed, setClosed] = useState(tracker.settings.roles.closed_values.join('\n'));
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,6 +44,7 @@ export function TrackerSettings({ tracker, fields }: { tracker: TrackerDef; fiel
           item_name: itemName,
           color,
           active,
+          calendar,
           roles: { ...roles, closed_values: closed.split('\n') },
         },
       });
@@ -126,6 +128,15 @@ export function TrackerSettings({ tracker, fields }: { tracker: TrackerDef; fiel
             onChange={(e) => setActive(e.target.checked)}
           />
           {t('listActive')}
+        </label>
+        <label className="inline-flex min-h-tap items-center gap-2 font-semibold">
+          <input
+            type="checkbox"
+            className="h-6 w-6"
+            checked={calendar}
+            onChange={(e) => setCalendar(e.target.checked)}
+          />
+          {t('listCalendar')}
         </label>
 
         <p className="text-muted">{t('settingsIntro')}</p>

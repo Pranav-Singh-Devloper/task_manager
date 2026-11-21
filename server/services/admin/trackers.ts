@@ -145,6 +145,7 @@ export async function createTracker(
           due_key: 'due_date',
         }),
         targets: { km: null, cr: null },
+        calendar: false,
       },
       is_seed: false,
       created_at: createdAt,
@@ -169,6 +170,8 @@ export interface TrackerPatch {
   item_name?: string;
   color?: string;
   active?: boolean;
+  /** Put the date that matters on Google Calendar. */
+  calendar?: boolean;
   roles?: Partial<TrackerRoles>;
 }
 
@@ -266,7 +269,7 @@ export async function updateTracker(
     item_name: itemName,
     color: patch.color ?? current.color,
     active: patch.active ?? current.active,
-    settings: { ...current.settings, roles },
+    settings: { ...current.settings, roles, calendar: patch.calendar ?? current.settings.calendar },
   };
   const tab = snap.tabs.find((t) => t.title === TAB.trackers);
   if (!tab) throw new NotFoundError("We couldn't find that list.");
@@ -290,6 +293,8 @@ export async function updateTracker(
   const changes: Record<string, [unknown, unknown]> = {};
   for (const k of ['name', 'item_name', 'color', 'active'] as const)
     if (current[k] !== next[k]) changes[k] = [current[k], next[k]];
+  if (current.settings.calendar !== next.settings.calendar)
+    changes.calendar = [current.settings.calendar, next.settings.calendar];
   if (JSON.stringify(current.settings.roles) !== JSON.stringify(roles))
     changes.roles = [JSON.stringify(current.settings.roles), JSON.stringify(roles)];
   if (Object.keys(changes).length > 0)

@@ -56,7 +56,11 @@ export function startJobs(data: DataLayer, google: GoogleServices, logger: Logge
   const retry = guarded('calendar-retry', google, logger, async () => {
     const ctx = await data.use();
     const r = await ctx.calendar.retryAll();
-    return r.tried === 0 ? undefined : `Tried ${r.tried}, ${r.ok} worked`;
+    // Lists too: rows whose event failed, and rows pasted into the Sheet that should be on the calendar.
+    const lists = await ctx.trackers.resync();
+    const tried = r.tried + lists.tried;
+    const ok = r.ok + lists.tried - lists.failed;
+    return tried === 0 ? undefined : `Tried ${tried}, ${ok} worked`;
   });
   const expire = guarded('expire-uploads', google, logger, async () => {
     const ctx = await data.use();

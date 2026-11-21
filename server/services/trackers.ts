@@ -12,6 +12,22 @@ import { learnOptions } from './lookups';
 import type { Actor } from './meetings';
 import { parseRow, serializeRow, type RowRecord } from './rows';
 import type { Entry, Snapshot, SheetStore } from './store';
+import type { Logger } from 'pino';
+import { calendarEventIdFor } from '../../shared/ids';
+import { shiftDate } from '../../shared/dates';
+import { isClosed } from '../../shared/trackerKpis';
+import { upsertEvent } from './calendarSync';
+import { isGoogleApiError } from './google/errors';
+import type { CalendarEventInput } from './google/types';
+
+export interface TrackerServiceOptions {
+  /** The address people open the app at, put in calendar events as a link back. */
+  appUrl?: string;
+  logger?: Logger;
+}
+
+/** All-day events remind at 9 AM the day before: 15 hours before the day starts. */
+const REMIND_DAY_BEFORE = 15 * 60;
 
 const CHANGED = 'This was changed somewhere else. Please reload it and try again.';
 
@@ -60,7 +76,167 @@ function diff(
  * check the rev, write, update the cache, log the change.
  */
 export class TrackerService {
-  constructor(private readonly store: SheetStore) {}
+  private running = new Map<string, Promise<void>>();
+
+  constructor(
+    private readonly store: SheetStore,
+    private readonly options: TrackerServiceOptions = {},
+  ) {}
+
+  // ---------- Google Calendar ----------
+
+  /** The all-day event for a row, or null when the row should not be on the calendar. */
+  private eventFor(cfg: TrackerConfig, row: TrackerRow): CalendarEventInput | null {
+    const { tracker, fields } = cfg;
+    const roles = tracker.settings.roles;
+    if (!tracker.settings.calendar || !tracker.active || row.deleted_at) return null;
+    if (isClosed(row, roles)) return null;
+    const date = row.values[roles.due_key];
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    const text = (k: string) => {
+      const v = row.values[k];
+      return v === null || v === undefined || v === ''
+        ? ''
+        : Array.isArray(v)
+          ? v.join(', ')
+          : String(v);
+    };
+    const title = text(roles.title_key) || tracker.name;
+    const group =
+      roles.group_key && roles.group_key !== roles.status_key ? text(roles.group_key) : '';
+    const due = fields.find((f) => f.key === roles.due_key)?.label ?? '';
+    const lines = [
+      `${due}: ${date}`,
+      text(roles.status_key)
+        ? `${fields.find((f) => f.key === roles.status_key)?.label ?? ''}: ${text(roles.status_key)}`
+        : '',
+      text('remarks'),
+      `Open in app: ${this.options.appUrl ?? 'http://localhost:3000'}/trackers/${tracker.slug}/${row.id}`,
+    ].filter(Boolean);
+    return {
+      id: calendarEventIdFor(row.id),
+      summary: `[${tracker.name}] ${title}${group ? ` (${group})` : ''}`,
+      description: lines.join('\n\n'),
+      start: { date },
+      end: { date: shiftDate(date, 1) },
+      reminders: {
+        useDefault: false,
+        overrides: [{ method: 'popup', minutes: REMIND_DAY_BEFORE }],
+      },
+      extendedProperties: { private: { mmTrackerRowId: row.id, mmTracker: tracker.slug } },
+    };
+  }
+
+  /** Starts a calendar sync for a row without waiting. One run per row at a time; a newer change runs after. */
+  queueSync(slug: string, id: string): void {
+    const key = `${slug}:${id}`;
+    const previous = this.running.get(key) ?? Promise.resolve();
+    const run = previous
+      .catch(() => undefined)
+      .then(() => this.syncNow(slug, id))
+      .catch((err: unknown) => this.options.logger?.warn({ err, id }, 'list calendar sync failed'));
+    this.running.set(key, run);
+    void run.finally(() => {
+      if (this.running.get(key) === run) this.running.delete(key);
+    });
+  }
+
+  /** Waits for running calendar syncs, never longer than `ms`. */
+  async settle(ms = 6000): Promise<void> {
+    const all = Promise.allSettled([...this.running.values()]);
+    await Promise.race([all, new Promise<void>((r) => setTimeout(r, ms).unref())]);
+  }
+
+  /** Puts the row's current state on the calendar and records the result in the row. */
+  async syncNow(slug: string, id: string): Promise<'ok' | 'error' | 'none'> {
+    const snap = await this.store.snapshot();
+    const cfg = snap.config.byTracker.get(slug);
+    const entry = snap.trackers.get(slug)?.entries.get(id);
+    if (!cfg || !entry) return 'none';
+    const row = toRow(entry, cfg.fields);
+    const { calendar } = this.store.google;
+    const calendarId = snap.config.settings.calendar_id || 'primary';
+    const payload = this.eventFor(cfg, row);
+    const had = entry.record.system.calendar_event_id;
+    let state: 'ok' | 'error' | 'none' = payload ? 'ok' : 'none';
+    let eventId = had;
+    try {
+      if (payload) eventId = (await upsertEvent(calendar, calendarId, payload)).id;
+      else if (had) {
+        try {
+          await calendar.deleteEvent(calendarId, had);
+        } catch (err) {
+          if (!isGoogleApiError(err, 404) && !isGoogleApiError(err, 410)) throw err;
+        }
+        eventId = '';
+      }
+    } catch (err) {
+      this.options.logger?.warn(
+        { id, status: isGoogleApiError(err) ? err.status : undefined },
+        'list calendar sync failed',
+      );
+      state = 'error';
+    }
+    await this.recordSync(slug, id, row.rev, state, eventId);
+    return state;
+  }
+
+  /** Writes the calendar result into the row's hidden columns. The rev stays, so an open form stays valid. */
+  private async recordSync(
+    slug: string,
+    id: string,
+    seenRev: number,
+    state: 'ok' | 'error' | 'none',
+    eventId: string,
+  ): Promise<void> {
+    const snap = await this.store.snapshot();
+    const cfg = snap.config.byTracker.get(slug);
+    if (!cfg) return;
+    const { google, spreadsheetId } = this.store;
+    await this.store.mutex.run(this.store.tabKey(cfg.tab.gid), async () => {
+      const fresh = await this.store.snapshot();
+      const data = fresh.trackers.get(slug);
+      const entry = data?.entries.get(id);
+      if (!data || !entry) return;
+      const live = await google.sheets.getRow(spreadsheetId, cfg.tab.gid, entry.row);
+      if (live[data.headers.indexOf('id')] !== id) return;
+      const record = parseRow(data.headers, live, cfg.fields);
+      // Changed while we talked to Google: that change queued its own sync.
+      if (record.system.rev !== seenRev) return;
+      const sync = state === 'none' ? '' : state;
+      if (record.system.calendar_sync === sync && record.system.calendar_event_id === eventId)
+        return;
+      const system: SystemFields = {
+        ...record.system,
+        calendar_sync: sync,
+        calendar_event_id: eventId,
+      };
+      const cells = serializeRow(data.headers, live, record.values, system, cfg.fields);
+      await google.sheets.updateRow(spreadsheetId, cfg.tab.gid, entry.row, cells);
+      this.store.applyRow(slug, entry.row, cells, parseRow(data.headers, cells, cfg.fields));
+    });
+  }
+
+  /** Rows whose calendar event failed, or that should now be added or removed (after a settings change). */
+  async resync(slug?: string): Promise<{ tried: number; failed: number }> {
+    const snap = await this.store.snapshot();
+    let tried = 0;
+    let failed = 0;
+    for (const cfg of snap.config.byTracker.values()) {
+      if (slug && cfg.tracker.slug !== slug) continue;
+      for (const entry of snap.trackers.get(cfg.tracker.slug)?.entries.values() ?? []) {
+        const sys = entry.record.system;
+        const wanted = Boolean(this.eventFor(cfg, toRow(entry, cfg.fields)));
+        const needs =
+          sys.calendar_sync === 'error' ||
+          (wanted ? sys.calendar_sync !== 'ok' : Boolean(sys.calendar_event_id));
+        if (!needs) continue;
+        tried += 1;
+        if ((await this.syncNow(cfg.tracker.slug, entry.id)) === 'error') failed += 1;
+      }
+    }
+    return { tried, failed };
+  }
 
   private cfgOf(snap: Snapshot, slug: string): TrackerConfig {
     const cfg = snap.config.byTracker.get(slug);
@@ -183,7 +359,10 @@ export class TrackerService {
         existing: false,
       };
     });
-    if (!made.existing) await this.learn(slug, made.row.values);
+    if (!made.existing) {
+      await this.learn(slug, made.row.values);
+      this.queueSync(slug, input.id);
+    }
     return made;
   }
 
@@ -270,25 +449,32 @@ export class TrackerService {
       if (changedKeys.length === 0) return null;
       return { values, action: 'update' };
     });
-    if (changedKeys.length > 0) await this.learn(slug, row.values, changedKeys);
+    if (changedKeys.length > 0) {
+      await this.learn(slug, row.values, changedKeys);
+      this.queueSync(slug, id);
+    }
     return row;
   }
 
   /** Moves a row to the Trash. It stays in the Sheet with a deleted date, and can be restored. */
-  remove(slug: string, id: string, rev: number, actor: Actor): Promise<TrackerRow> {
-    return this.mutate(slug, id, rev, actor, (record, now) =>
+  async remove(slug: string, id: string, rev: number, actor: Actor): Promise<TrackerRow> {
+    const row = await this.mutate(slug, id, rev, actor, (record, now) =>
       record.system.deleted_at
         ? null
         : { values: record.values, deleted_at: now, action: 'delete' },
     );
+    this.queueSync(slug, id);
+    return row;
   }
 
-  restore(slug: string, id: string, actor: Actor): Promise<TrackerRow> {
-    return this.mutate(slug, id, null, actor, (record) =>
+  async restore(slug: string, id: string, actor: Actor): Promise<TrackerRow> {
+    const row = await this.mutate(slug, id, null, actor, (record) =>
       record.system.deleted_at
         ? { values: record.values, deleted_at: '', action: 'restore' }
         : null,
     );
+    this.queueSync(slug, id);
+    return row;
   }
 
   /** Changes a tracker's targets (Award Plan: km and ₹ Cr for this financial year). */
