@@ -100,10 +100,17 @@ test.describe('navigation', () => {
 });
 
 test.describe('readability', () => {
-  test('body text is at least 18 px', async ({ page }) => {
+  test('normal text (A) is 14.4 px, the size the owner chose, and there is nothing larger', async ({
+    page,
+  }) => {
     await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-text-size', '80');
     const size = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
-    expect(size).toBeGreaterThanOrEqual(18);
+    expect(size).toBeCloseTo(14.4, 1);
+    const group = page.getByRole('banner').getByRole('group', { name: 'Text size' });
+    await expect(group.getByRole('button')).toHaveText(
+      ['A−−', 'A−', 'A'].map((x) => new RegExp(`^${x}`)),
+    );
   });
 
   test('every button and link in the shell is at least 48 px', async ({ page }) => {
@@ -123,44 +130,17 @@ test.describe('readability', () => {
     }
   });
 
-  test('text size A++ is remembered and does not break any page', async ({ page }) => {
-    await page.goto('/');
-    await page
-      .getByRole('banner')
-      .getByRole('button', { name: /^A\+\+/ })
-      .click();
-    await expect(page.locator('html')).toHaveAttribute('data-text-size', '150');
-    for (const path of PAGES) {
-      await page.goto(path);
-      // The server already rendered the saved size, so there is no flash of small text.
-      await expect(page.locator('html')).toHaveAttribute('data-text-size', '150');
-      await noHorizontalScroll(page);
-    }
-    const size = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
-    expect(size).toBe(27);
-  });
-
-  test('A+ scales to 125%', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: /^A\+ / }).click();
-    await expect
-      .poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)))
-      .toBe(22.5);
-    await expect(page.getByRole('button', { name: /^A\+ / })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-  });
-
-  test('A− and A−− make text smaller, and every button stays at least 48 px', async ({ page }) => {
+  test('A− and A−− make text smaller, are remembered, and every button stays at least 48 px', async ({
+    page,
+  }) => {
     await page.goto('/');
     const banner = page.getByRole('banner');
     await banner.getByRole('button', { name: /^A−\s/ }).click();
     await expect
       .poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)))
-      .toBeCloseTo(16.2, 1);
+      .toBeCloseTo(12.6, 1);
     await banner.getByRole('button', { name: /^A−−/ }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-text-size', '80');
+    await expect(page.locator('html')).toHaveAttribute('data-text-size', '60');
     await expect(banner.getByRole('button', { name: /^A−−/ })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -168,11 +148,13 @@ test.describe('readability', () => {
     for (const path of PAGES) {
       await page.goto(path);
       // Remembered, and already applied by the server.
-      await expect(page.locator('html')).toHaveAttribute('data-text-size', '80');
+      await expect(page.locator('html')).toHaveAttribute('data-text-size', '60');
       await noHorizontalScroll(page);
     }
     await page.goto('/');
-    await expect(page.getByText('Loading your meetings…')).toHaveCount(0);
+    expect(
+      await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)),
+    ).toBeCloseTo(10.8, 1);
     const small = await page
       .locator('header :is(a, button), nav :is(a, button), main :is(a, button)')
       .evaluateAll((els) =>
@@ -183,6 +165,14 @@ test.describe('readability', () => {
           .map(({ text, r }) => `${text.slice(0, 30)} (${Math.round(r.height)}px)`),
       );
     expect(small).toEqual([]);
+  });
+
+  test('a size saved before A+ and A++ were removed falls back to A', async ({ page }) => {
+    await page
+      .context()
+      .addCookies([{ name: 'mm_text_size', value: '150', url: 'http://localhost:3100' }]);
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-text-size', '80');
   });
 
   test('high contrast gives black on white with 3 px borders and is remembered', async ({
@@ -212,12 +202,9 @@ test.describe('accessibility (axe)', () => {
       expect(await seriousViolations(page)).toEqual([]);
     });
 
-    test(`${path} has no serious violations at A++ with high contrast`, async ({ page }) => {
+    test(`${path} has no serious violations at A−− with high contrast`, async ({ page }) => {
       await page.goto(path);
-      await page
-        .getByRole('banner')
-        .getByRole('button', { name: /^A\+\+/ })
-        .click();
+      await page.getByRole('banner').getByRole('button', { name: /^A−−/ }).click();
       await page
         .getByRole('banner')
         .getByRole('button', { name: /High contrast/ })

@@ -563,11 +563,11 @@ test.describe('accessibility and layout on the new screens', () => {
       expect(await serious(page)).toEqual([]);
     });
 
-    test(`${name} works at A++ with high contrast, and nothing scrolls sideways`, async ({
+    test(`${name} works with high contrast at the largest size (A), and nothing scrolls sideways`, async ({
       page,
     }) => {
       await page.goto(await url(page));
-      await page.getByRole('button', { name: /^A\+\+/ }).click();
+      await page.getByRole('button', { name: /^A\s/ }).click();
       await page.getByRole('button', { name: /High contrast/ }).click();
       await expect(page.locator('main h1, form h1').first()).toBeVisible();
       await noSideScroll(page);

@@ -87,15 +87,15 @@ test.describe('signed out', () => {
   test('text size and contrast work on the login page too', async ({ page }) => {
     await page
       .context()
-      .addCookies([{ name: 'mm_text_size', value: '150', url: 'http://localhost:3100' }]);
+      .addCookies([{ name: 'mm_text_size', value: '60', url: 'http://localhost:3100' }]);
     await page.goto('/login');
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    expect(await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize))).toBe(
-      27,
-    );
+    expect(
+      await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize)),
+    ).toBeCloseTo(10.8, 1);
   });
 });
 

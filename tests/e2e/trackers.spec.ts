@@ -131,13 +131,15 @@ test.describe('adding and changing rows', () => {
 
 test.describe('accessibility and layout', () => {
   for (const path of ['/', '/trackers/dpr', '/trackers/track', '/trackers/award_plan/new']) {
-    test(`${path} has no serious problems and fits at A++ with high contrast`, async ({ page }) => {
+    test(`${path} has no serious problems and fits with high contrast at the largest size (A)`, async ({
+      page,
+    }) => {
       await page.goto(path);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(page.getByText('Loading…')).toHaveCount(0);
       expect(await serious(page)).toEqual([]);
       const banner = page.getByRole('banner');
-      await banner.getByRole('button', { name: /^A\+\+/ }).click();
+      await banner.getByRole('button', { name: /^A\s/ }).click();
       await banner.getByRole('button', { name: /High contrast/ }).click();
       // Let the buttons finish their short colour change before contrast is measured.
       await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high');
@@ -152,5 +154,33 @@ test.describe('accessibility and layout', () => {
     await openList(page, 'dpr', 'DPR');
     await page.getByRole('link', { name: '+ Add DPR' }).click();
     await expect(page).toHaveURL(/\/trackers\/dpr\/new$/);
+  });
+});
+
+test.describe('a new list', () => {
+  test('is made from the sidebar, gets its columns in Admin, and has its own page and Add', async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Admin works best on a computer');
+    const name = `Visits ${uid()}`;
+    await page.goto('/');
+    await page
+      .getByRole('navigation', { name: 'Main menu' })
+      .getByRole('link', { name: '+ New list' })
+      .click();
+    await page.getByLabel(/^Name of the list/).fill(name);
+    await page.getByLabel(/^What is one row called/).fill('visit');
+    await page.getByRole('button', { name: 'Make the list' }).click();
+    await expect(page.getByRole('heading', { name: `Columns of ${name}` })).toBeVisible();
+    await expect(page.getByText(`Settings of ${name}`)).toBeVisible();
+
+    await page
+      .getByRole('navigation', { name: 'Main menu' })
+      .getByRole('link', { name: `Add — ${name}` })
+      .click();
+    await page.getByLabel(/^Name/).fill('Bridge at Km 12');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bridge at Km 12' })).toBeVisible();
   });
 });

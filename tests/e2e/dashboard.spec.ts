@@ -658,9 +658,11 @@ test.describe('accessibility and layout', () => {
       expect(await serious(page)).toEqual([]);
     });
 
-    test(`${name} works at A++ with high contrast without scrolling sideways`, async ({ page }) => {
+    test(`${name} works with high contrast at the largest size (A) without scrolling sideways`, async ({
+      page,
+    }) => {
       await openDashboard(page);
-      await page.getByRole('button', { name: /^A\+\+/ }).click();
+      await page.getByRole('button', { name: /^A\s/ }).click();
       await page.getByRole('button', { name: /High contrast/ }).click();
       await setup(page);
       await settled(page);

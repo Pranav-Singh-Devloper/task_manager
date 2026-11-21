@@ -17,6 +17,7 @@ import { exportCsv, exportXlsx } from '../services/admin/export';
 import { systemHealth } from '../services/admin/health';
 import { readLog } from '../services/admin/log';
 import { assertEditable, listTables, readTable } from '../services/admin/tables';
+import { createTracker, updateTracker } from '../services/admin/trackers';
 import { listTrash, purgeMeeting } from '../services/admin/trash';
 import type { DataLayer } from '../services/data';
 import type { Actor } from '../services/meetings';
@@ -218,6 +219,49 @@ export function adminRouter(data: DataLayer): Router {
     const body = parse(confirmBody, req.body);
     const { store } = await data.use();
     res.json(await removeCategory(store, String(req.params.slug), body.confirm, actorOf(req)));
+  });
+
+  // ---- lists (trackers) ----
+  router.post('/admin/trackers', async (req, res) => {
+    const body = parse(
+      z.object({
+        name: z.string().max(200),
+        item_name: z.string().max(200),
+        color: z.string().max(20),
+      }),
+      req.body,
+    );
+    const { store } = await data.use();
+    res.status(201).json({ tracker: await createTracker(store, body, actorOf(req)) });
+  });
+
+  router.patch('/admin/trackers/:slug', async (req, res) => {
+    const key = z.string().max(100);
+    const body = parse(
+      z.object({
+        name: z.string().max(200).optional(),
+        item_name: z.string().max(200).optional(),
+        color: z.string().max(20).optional(),
+        active: z.boolean().optional(),
+        roles: z
+          .object({
+            title_key: key,
+            status_key: key,
+            closed_values: z.array(z.string().max(200)).max(20),
+            due_key: key,
+            group_key: key,
+            sum_keys: z.array(key).max(5),
+            done_date_key: key,
+            stages_key: key,
+            stage_key: key,
+          })
+          .partial()
+          .optional(),
+      }),
+      req.body,
+    );
+    const { store } = await data.use();
+    res.json({ tracker: await updateTracker(store, String(req.params.slug), body, actorOf(req)) });
   });
 
   // ---- trash ----

@@ -16,6 +16,7 @@ import {
   parseContrast,
   parseMotion,
   parseTextSize,
+  DEFAULT_TEXT_SIZE,
   type Contrast,
   type Motion,
   type TextSize,
@@ -66,7 +67,8 @@ export function PreferencesProvider({
       const size = parseTextSize(localStorage.getItem(PREF_STORAGE.textSize));
       const high = parseContrast(localStorage.getItem(PREF_STORAGE.contrast));
       const still = parseMotion(localStorage.getItem(PREF_STORAGE.motion));
-      if (initialTextSize === '100' && size !== '100') apply('textSize', size);
+      if (initialTextSize === DEFAULT_TEXT_SIZE && size !== DEFAULT_TEXT_SIZE)
+        apply('textSize', size);
       if (initialContrast === 'normal' && high === 'high') apply('contrast', high);
       if (initialMotion === 'on' && still === 'off') apply('motion', still);
     } catch {

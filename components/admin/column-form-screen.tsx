@@ -43,18 +43,22 @@ export function ColumnFormScreen({
   const meta = useMeta();
   if (meta.isPending) return <p>{t('loading')}</p>;
   if (meta.isError || !meta.data) return <p className="font-semibold">{t('loadFailed')}</p>;
+  // A meeting category or a tracker: their columns are managed the same way.
+  const all = [...meta.data.fields, ...meta.data.trackerFields];
   const existing = columnKey
-    ? meta.data.fields.find((f) => f.category_slug === category && f.key === columnKey)
+    ? all.find((f) => f.category_slug === category && f.key === columnKey)
     : undefined;
   if (columnKey && !existing) return <p className="font-semibold">{t('columnNotFound')}</p>;
   const cat = meta.data.categories.find((c) => c.slug === category);
-  const stored = meta.data.fields
+  const tracker = meta.data.trackers.find((x) => x.slug === category);
+  const stored = all
     .filter((f) => f.category_slug === category && f.type !== 'computed')
     .map((f) => f.key);
   return (
     <Form
       category={category}
-      categoryName={cat?.name ?? ''}
+      categoryName={cat?.name ?? tracker?.name ?? ''}
+      isTracker={Boolean(tracker)}
       existing={existing}
       storedKeys={stored}
     />
@@ -64,11 +68,14 @@ export function ColumnFormScreen({
 function Form({
   category,
   categoryName,
+  isTracker,
   existing,
   storedKeys,
 }: {
   category: string;
   categoryName: string;
+  /** Trackers can have a States column (Track) and have no case numbers. */
+  isTracker: boolean;
   existing: FieldDef | undefined;
   storedKeys: string[];
 }) {
@@ -77,6 +84,7 @@ function Form({
   const router = useRouter();
   const client = useQueryClient();
   const editing = Boolean(existing);
+  const choosable: FieldType[] = isTracker ? [...CHOOSABLE, 'stages'] : CHOOSABLE;
 
   const [label, setLabel] = useState(existing?.label ?? '');
   const [type, setType] = useState<FieldType>(existing?.type ?? 'text');
@@ -211,9 +219,9 @@ function Form({
             disabled={locked}
             onChange={(e) => setType(e.target.value as FieldType)}
             aria-describedby={c['aria-describedby']}
-            options={(existing && !CHOOSABLE.includes(existing.type)
-              ? [existing.type, ...CHOOSABLE]
-              : CHOOSABLE
+            options={(existing && !choosable.includes(existing.type)
+              ? [existing.type, ...choosable]
+              : choosable
             ).map((v) => ({ value: v, label: FIELD_TYPE_LABELS[v] }))}
           />
         )}
@@ -342,7 +350,7 @@ function Form({
           />
           {t('showInTable')}
         </label>
-        {type !== 'computed' && (
+        {type !== 'computed' && !isTracker && (
           <label className="inline-flex min-h-tap items-center gap-2 font-semibold">
             <input
               type="checkbox"
@@ -354,7 +362,7 @@ function Form({
           </label>
         )}
       </fieldset>
-      {type !== 'computed' && <p className="text-muted">{t('caseKeyHint')}</p>}
+      {type !== 'computed' && !isTracker && <p className="text-muted">{t('caseKeyHint')}</p>}
 
       {failure && (
         <p role="alert" className="font-semibold text-danger">

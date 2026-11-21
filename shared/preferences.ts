@@ -1,6 +1,10 @@
-/** A−− / A− / A / A+ / A++: 80%, 90%, 100%, 125% and 150% of the normal text size. */
-export const TEXT_SIZES = ['80', '90', '100', '125', '150'] as const;
+/**
+ * A−− / A− / A: 60%, 70% and 80% of the original 18 px text. The owner asked for A to be what used to be the smallest
+ * size, with two smaller ones below it and none larger (2026-11-22).
+ */
+export const TEXT_SIZES = ['60', '70', '80'] as const;
 export type TextSize = (typeof TEXT_SIZES)[number];
+export const DEFAULT_TEXT_SIZE: TextSize = '80';
 export type Contrast = 'normal' | 'high';
 /** Animated text, backgrounds and hover effects. Off also when the device asks for reduced motion. */
 export type Motion = 'on' | 'off';
@@ -18,7 +22,9 @@ export const PREF_STORAGE = {
 } as const;
 
 export function parseTextSize(value: string | undefined | null): TextSize {
-  return (TEXT_SIZES as readonly string[]).includes(value ?? '') ? (value as TextSize) : '100';
+  return (TEXT_SIZES as readonly string[]).includes(value ?? '')
+    ? (value as TextSize)
+    : DEFAULT_TEXT_SIZE;
 }
 
 export function parseContrast(value: string | undefined | null): Contrast {

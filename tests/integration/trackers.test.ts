@@ -186,3 +186,99 @@ describe('tracker rows', () => {
     ).rejects.toMatchObject({ status: 400 });
   });
 });
+
+describe('tracker columns in Admin', () => {
+  it('adds, renames, hides and removes a column of a tracker, the same way as a meeting column', async () => {
+    const { f, trackers } = await setup();
+    const { addField, updateField, removeField } =
+      await import('../../server/services/admin/columns');
+    const added = await addField(f.store, 'dpr', { label: 'Land status', type: 'text' }, dad);
+    expect(added.key).toBe('land_status');
+    expect((await f.tab('DPR')).headers).toContain('land_status');
+
+    const row = (await trackers.list('dpr')).rows[0]!;
+    const changed = await trackers.update(
+      'dpr',
+      row.id,
+      { values: { land_status: '80% acquired' }, rev: row.rev },
+      dad,
+    );
+    expect(changed.values.land_status).toBe('80% acquired');
+
+    await updateField(f.store, 'dpr', 'land_status', { label: 'Land', archived: true }, dad);
+    const hidden = (await f.store.snapshot()).config.byTracker
+      .get('dpr')!
+      .fields.find((x) => x.key === 'land_status');
+    expect(hidden).toMatchObject({ label: 'Land', archived: true });
+
+    await removeField(f.store, 'dpr', 'land_status', 'Land', dad);
+    const gone = (await f.store.snapshot()).config.byTracker
+      .get('dpr')!
+      .fields.some((x) => x.key === 'land_status');
+    expect(gone).toBe(false);
+  });
+
+  it('keeps the name column, which every row needs', async () => {
+    const { f } = await setup();
+    const { updateField } = await import('../../server/services/admin/columns');
+    await expect(
+      updateField(f.store, 'award_plan', 'project', { archived: true }, dad),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe('a new list (ADD++)', () => {
+  it('makes a list with its own tab and a working dashboard, and its roles can be changed', async () => {
+    const { f, trackers } = await setup();
+    const { createTracker, updateTracker } = await import('../../server/services/admin/trackers');
+    const made = await createTracker(
+      f.store,
+      { name: 'Site Visits', item_name: 'visit', color: '#1D4ED8' },
+      dad,
+    );
+    expect(made).toMatchObject({ slug: 'site_visits', kind: 'custom' });
+    expect((await f.tab('Site Visits')).headers.slice(0, 5)).toEqual([
+      'sr_no',
+      'name',
+      'status',
+      'due_date',
+      'remarks',
+    ]);
+    await trackers.create(
+      'site_visits',
+      { id: newId(), values: { name: 'Bridge at Km 12', due_date: '2020-01-01' } },
+      dad,
+    );
+    const summary = (await trackers.summaries()).find((s) => s.tracker.slug === 'site_visits')!;
+    expect(summary.kpis.tiles.find((t) => t.id === 'overdue')?.value).toBe(1);
+
+    await expect(
+      updateTracker(f.store, 'site_visits', { roles: { due_key: 'remarks' } }, dad),
+    ).rejects.toMatchObject({ issues: [{ field: 'due_key' }] });
+    const changed = await updateTracker(
+      f.store,
+      'site_visits',
+      { name: 'Visits', roles: { group_key: 'status', closed_values: ['Done', 'Dropped'] } },
+      dad,
+    );
+    expect(changed.name).toBe('Visits');
+    expect(changed.settings.roles).toMatchObject({
+      group_key: 'status',
+      closed_values: ['Done', 'Dropped'],
+    });
+  });
+
+  it('refuses a name that is already used, and never takes the slug "new"', async () => {
+    const { f } = await setup();
+    const { createTracker } = await import('../../server/services/admin/trackers');
+    await expect(
+      createTracker(f.store, { name: 'DPR', item_name: 'x', color: '#1D4ED8' }, dad),
+    ).rejects.toMatchObject({ issues: [{ field: 'name' }] });
+    const made = await createTracker(
+      f.store,
+      { name: 'New', item_name: 'thing', color: '#1D4ED8' },
+      dad,
+    );
+    expect(made.slug).toBe('new_2');
+  });
+});

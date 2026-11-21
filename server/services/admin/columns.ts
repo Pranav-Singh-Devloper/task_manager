@@ -12,7 +12,7 @@ import {
 import { AppError, NotFoundError, ValidationFailed } from '../../lib/errors';
 import { slugFor } from '../categories';
 import type { Actor } from '../meetings';
-import type { SheetStore } from '../store';
+import type { SheetStore, Snapshot } from '../store';
 import { backupNow } from './backups';
 
 const MAX_LABEL = 60;
@@ -48,7 +48,15 @@ export interface TypeCheck {
   message: string;
 }
 
-const lockedMessage = 'This column is part of every meeting, so it cannot be changed this way.';
+const lockedMessage = 'This column is needed by every row, so it cannot be changed this way.';
+
+/** The columns of a meeting category or a tracker: Admin manages both the same way. */
+function tabConfig(snap: Snapshot, slug: string) {
+  return snap.config.byCategory.get(slug) ?? snap.config.byTracker.get(slug);
+}
+function rowsOf(snap: Snapshot, slug: string) {
+  return snap.categories.get(slug) ?? snap.trackers.get(slug);
+}
 
 async function configTab(store: SheetStore, title: string) {
   const snap = await store.snapshot();
@@ -110,7 +118,7 @@ export async function checkTypeChange(
   options?: string[],
 ): Promise<TypeCheck> {
   const snap = await store.snapshot();
-  const field = snap.config.byCategory.get(slug)?.fields.find((f) => f.key === key);
+  const field = tabConfig(snap, slug)?.fields.find((f) => f.key === key);
   if (!field) throw new NotFoundError("We couldn't find that column.");
   if (field.type === to)
     return { allowed: true, invalid_count: 0, message: 'The type stays the same.' };
@@ -130,7 +138,7 @@ export async function checkTypeChange(
   if (to === 'select') {
     const allowed = new Set(cleanOptions(options ?? field.options).map((o) => o.toLowerCase()));
     let bad = 0;
-    for (const e of snap.categories.get(slug)?.entries.values() ?? []) {
+    for (const e of rowsOf(snap, slug)?.entries.values() ?? []) {
       const v = e.record.values[key];
       if (typeof v === 'string' && v.trim() && !allowed.has(v.trim().toLowerCase())) bad += 1;
     }
@@ -171,15 +179,15 @@ export async function addField(
   actor: Actor,
 ): Promise<FieldDef> {
   const snap = await store.snapshot();
-  const cfg = snap.config.byCategory.get(slug);
-  if (!cfg) throw new NotFoundError("We couldn't find that category.");
+  const cfg = tabConfig(snap, slug);
+  if (!cfg) throw new NotFoundError("We couldn't find that list.");
   const issues: ValidationIssue[] = [];
   const stored = new Set(cfg.fields.filter((f) => f.type !== 'computed').map((f) => f.key));
   validateInput(store, stored, input, issues);
   if (cfg.fields.some((f) => f.label.toLowerCase() === input.label.trim().toLowerCase())) {
     issues.push({
       field: 'label',
-      message: `This category already has a column called "${input.label.trim()}".`,
+      message: `This list already has a column called "${input.label.trim()}".`,
     });
   }
   if (issues.length > 0) throw new ValidationFailed(issues);
@@ -242,7 +250,7 @@ export async function updateField(
   actor: Actor,
 ): Promise<FieldDef> {
   const snap = await store.snapshot();
-  const cfg = snap.config.byCategory.get(slug);
+  const cfg = tabConfig(snap, slug);
   const current = cfg?.fields.find((f) => f.key === key);
   if (!cfg || !current) throw new NotFoundError("We couldn't find that column.");
 
@@ -270,7 +278,7 @@ export async function updateField(
   ) {
     issues.push({
       field: 'label',
-      message: `This category already has a column called "${patch.label.trim()}".`,
+      message: `This list already has a column called "${patch.label.trim()}".`,
     });
   }
   const nextType = patch.type ?? current.type;
@@ -342,7 +350,7 @@ export async function moveField(
   actor: Actor,
 ): Promise<void> {
   const snap = await store.snapshot();
-  const fields = [...(snap.config.byCategory.get(slug)?.fields ?? [])]
+  const fields = [...(tabConfig(snap, slug)?.fields ?? [])]
     .filter((f) => !f.archived)
     .sort((a, b) => a.order - b.order);
   const i = fields.findIndex((f) => f.key === key);
@@ -370,7 +378,7 @@ export async function removeField(
   actor: Actor,
 ): Promise<{ backup_id: string }> {
   const snap = await store.snapshot();
-  const cfg = snap.config.byCategory.get(slug);
+  const cfg = tabConfig(snap, slug);
   const field = cfg?.fields.find((f) => f.key === key);
   if (!cfg || !field) throw new NotFoundError("We couldn't find that column.");
   if (field.locked) throw new ValidationFailed([{ field: 'form', message: lockedMessage }]);
@@ -389,7 +397,7 @@ export async function removeField(
     if (row) await store.google.sheets.deleteRow(store.spreadsheetId, tab.gid, row);
   });
   // Clear the column's values and its header so nothing of it is left behind.
-  const data = snap.categories.get(slug);
+  const data = rowsOf(snap, slug);
   const col = data ? data.headers.indexOf(key) : -1;
   if (data && col >= 0) {
     const gid = cfg.tab.gid;
@@ -455,7 +463,7 @@ export async function updateCategory(
       message: 'Please choose a workspace from the list.',
     });
   if (patch.title_template !== undefined) {
-    const known = new Set((snap.config.byCategory.get(slug)?.fields ?? []).map((f) => f.key));
+    const known = new Set((tabConfig(snap, slug)?.fields ?? []).map((f) => f.key));
     for (const m of patch.title_template.matchAll(/\{(\w+)\}/g)) {
       if (!known.has(m[1] as string))
         issues.push({
@@ -505,7 +513,7 @@ export async function removeCategory(
   const snap = await store.snapshot();
   const category = snap.config.categories.find((c) => c.slug === slug);
   if (!category) throw new NotFoundError("We couldn't find that category.");
-  if ((snap.categories.get(slug)?.entries.size ?? 0) > 0) {
+  if ((rowsOf(snap, slug)?.entries.size ?? 0) > 0) {
     throw new ValidationFailed([
       {
         field: 'form',

@@ -10,6 +10,7 @@ import { ApiError, api } from '@/lib/api';
 import { useMeta, type Meta } from '@/lib/queries';
 import { CATEGORY_PALETTE, FIELD_TYPE_LABELS } from '@/shared/seed';
 import type { CategoryDef, FieldDef } from '@/shared/types';
+import { TrackerSettings } from './tracker-settings';
 import { TypedConfirm } from './typed-confirm';
 
 /** Admin, Columns & categories (§7.9 b): change what the forms and tables ask for, with no developer. */
@@ -21,7 +22,7 @@ export function ColumnsScreen() {
   const picked = useSearchParams().get('category') ?? '';
   if (meta.isPending) return <p>{t('loading')}</p>;
   if (meta.isError || !meta.data) return <p className="font-semibold">{t('loadFailed')}</p>;
-  const slug = picked || meta.data.categories[0]?.slug || '';
+  const slug = picked || meta.data.categories[0]?.slug || meta.data.trackers[0]?.slug || '';
   return (
     <Manager
       meta={meta.data}
@@ -46,7 +47,8 @@ function Manager({
   const [removingKey, setRemovingKey] = useState('');
   const [removeError, setRemoveError] = useState('');
   const category = meta.categories.find((c) => c.slug === slug);
-  const fields = meta.fields
+  const tracker = meta.trackers.find((x) => x.slug === slug);
+  const fields = [...meta.fields, ...meta.trackerFields]
     .filter((f) => f.category_slug === slug)
     .sort((a, b) => a.order - b.order);
 
@@ -128,10 +130,17 @@ function Manager({
                 id={c.id}
                 value={slug}
                 onChange={(e) => onPick(e.target.value)}
-                options={meta.categories.map((x) => ({
-                  value: x.slug,
-                  label: x.active ? x.name : `${x.name} ${t('hiddenSuffix')}`,
-                }))}
+                options={[
+                  ...meta.categories.map((x) => ({
+                    value: x.slug,
+                    label: x.active ? x.name : `${x.name} ${t('hiddenSuffix')}`,
+                  })),
+                  // The other lists (Award Plan, DPR...) have columns too.
+                  ...meta.trackers.map((x) => ({
+                    value: x.slug,
+                    label: t('trackerOption', { name: x.name }),
+                  })),
+                ]}
               />
             )}
           </FormField>
@@ -148,11 +157,12 @@ function Manager({
       {category && (
         <CategorySettings key={category.slug} category={category} meta={meta} run={run} />
       )}
+      {tracker && <TrackerSettings key={tracker.slug} tracker={tracker} fields={fields} />}
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="text-2xl font-semibold">
-            {t('columnsOf', { name: category?.name ?? '' })}
+            {t('columnsOf', { name: category?.name ?? tracker?.name ?? '' })}
           </h3>
           <Link href={`/admin/columns/${slug}/new`} className={buttonClasses('primary')}>
             {t('addColumn')}

@@ -20,6 +20,7 @@ export function isFormPage(pathname: string): boolean {
   return (
     pathname === '/meetings/new' ||
     pathname === '/categories/new' ||
+    pathname === '/trackers/new' ||
     /^\/trackers\/[^/]+\/[^/]+$/.test(pathname) ||
     /^\/meetings\/[^/]+\/(edit|reschedule|done)$/.test(pathname)
   );

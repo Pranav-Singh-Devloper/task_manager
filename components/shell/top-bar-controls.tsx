@@ -7,15 +7,12 @@ import { usePreferences } from '../preferences';
 
 const SIZES: {
   value: TextSize;
-  short: 'sizeSmallest' | 'sizeSmaller' | 'sizeNormal' | 'sizeLarge' | 'sizeLargest';
-  long:
-    'textSizeSmallest' | 'textSizeSmaller' | 'textSizeNormal' | 'textSizeLarge' | 'textSizeLargest';
+  short: 'sizeSmallest' | 'sizeSmaller' | 'sizeNormal';
+  long: 'textSizeSmallest' | 'textSizeSmaller' | 'textSizeNormal';
 }[] = [
-  { value: '80', short: 'sizeSmallest', long: 'textSizeSmallest' },
-  { value: '90', short: 'sizeSmaller', long: 'textSizeSmaller' },
-  { value: '100', short: 'sizeNormal', long: 'textSizeNormal' },
-  { value: '125', short: 'sizeLarge', long: 'textSizeLarge' },
-  { value: '150', short: 'sizeLargest', long: 'textSizeLargest' },
+  { value: '60', short: 'sizeSmallest', long: 'textSizeSmallest' },
+  { value: '70', short: 'sizeSmaller', long: 'textSizeSmaller' },
+  { value: '80', short: 'sizeNormal', long: 'textSizeNormal' },
 ];
 
 const toggleClasses = (on: boolean) =>
@@ -27,7 +24,7 @@ const toggleClasses = (on: boolean) =>
   );
 
 /**
- * A−− / A− / A / A+ / A++ and the High contrast switch, remembered on this device. Settings also shows the Animations switch
+ * A−− / A− / A and the High contrast switch, remembered on this device. Settings also shows the Animations switch
  * (`withMotion`); the top bar leaves it out to stay short.
  */
 export function TopBarControls({ withMotion = false }: { withMotion?: boolean }) {

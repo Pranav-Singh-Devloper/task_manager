@@ -75,6 +75,7 @@ function AddLink({ href, name }: { href: string; name: string }) {
  */
 export function SidebarContent() {
   const t = useTranslations('nav');
+  const tt = useTranslations('trackers');
   const pathname = usePathname();
   const meta = useMeta();
   const trackers = (meta.data?.trackers ?? []).filter((x) => x.active);
@@ -114,6 +115,12 @@ export function SidebarContent() {
             <AddLink href={`/trackers/${tr.slug}/new`} name={tr.name} />
           </li>
         ))}
+        {/* "ADD++" in the owner's sketch: a new list of its own. */}
+        <li className="flex">
+          <NavLink href="/trackers/new" active={pathname === '/trackers/new'}>
+            <span className="pl-1">{tt('newList')}</span>
+          </NavLink>
+        </li>
       </ul>
       <ul className="flex flex-col gap-1.5 border-t-ui border-soft pt-3">
         <li className="flex">
