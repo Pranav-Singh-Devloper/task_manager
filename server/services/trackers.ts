@@ -293,7 +293,15 @@ export class TrackerService {
 
   async create(
     slug: string,
-    input: { id: string; values: Record<string, unknown> },
+    input: {
+      id: string;
+      values: Record<string, unknown>;
+      /**
+       * Copying existing rows: blank columns stay blank instead of taking their defaults, and the dropdowns are not
+       * taught one row at a time (the copy sets their choices once at the end).
+       */
+      copying?: boolean;
+    },
     actor: Actor,
   ): Promise<{ row: TrackerRow; existing: boolean }> {
     if (!isUlid(input.id)) {
@@ -318,6 +326,7 @@ export class TrackerService {
       const supplied: Record<string, unknown> = { ...input.values };
       for (const f of cfg.fields) {
         const v = supplied[f.key];
+        if (input.copying) break;
         if (f.default_value && (v === undefined || v === null || v === ''))
           supplied[f.key] = f.default_value;
       }
@@ -364,7 +373,7 @@ export class TrackerService {
       };
     });
     if (!made.existing) {
-      await this.learn(slug, made.row.values);
+      if (!input.copying) await this.learn(slug, made.row.values);
       this.queueSync(slug, input.id);
     }
     return made;
