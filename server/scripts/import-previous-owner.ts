@@ -88,7 +88,7 @@ async function main() {
   const { google } = await createGoogleServices(env);
   const data = new DataLayer(google, { logger, appUrl: env.appUrl });
   const ctx = await data.use();
-  const problems = await applyPlan(plan, ctx, { pauseMs: 250, log: (l) => console.log(l) });
+  const problems = await applyPlan(plan, ctx, { pauseMs: 3500, log: (l) => console.log(l) });
   if (problems.length > 0) {
     console.log('\nNot copied, with the reason:');
     for (const p of problems) console.log(`  ! ${p}`);

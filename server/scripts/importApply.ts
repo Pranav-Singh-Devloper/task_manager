@@ -8,35 +8,56 @@ import type { Actor } from '../services/meetings';
 import { updateSettings } from '../services/settings';
 import type { ImportPlan } from './importPlan';
 
+/**
+ * Google allows 60 writes a minute. When a step is refused for going too fast, wait a minute and try again, up to
+ * five times, instead of stopping half-way.
+ */
+async function patient<T>(fn: () => Promise<T>, waitMs: number): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const quota =
+        (err as { status?: number }).status === 429 ||
+        /quota|rate ?limit/i.test(err instanceof Error ? err.message : String(err));
+      if (!quota || attempt >= 5) throw err;
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+}
+
 export const IMPORT_ACTOR: Actor = { email: 'import from the previous database', source: 'admin' };
 
 /** Writes an import plan into the current database through the app's services. Returns what could not be copied. */
 export async function applyPlan(
   plan: ImportPlan,
   ctx: DataContext,
-  options: { pauseMs?: number; log?: (line: string) => void } = {},
+  options: { pauseMs?: number; quotaWaitMs?: number; log?: (line: string) => void } = {},
 ): Promise<string[]> {
   const actor = IMPORT_ACTOR;
   const pause = options.pauseMs ?? 0;
+  const wait = options.quotaWaitMs ?? 65_000;
+  const p = <T>(fn: () => Promise<T>) => patient(fn, wait);
   const console = { log: options.log ?? (() => undefined) };
   const sleep = (ms: number) =>
     ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
   const { store } = ctx;
   const problems: string[] = [];
 
-  if (Object.keys(plan.settings).length > 0) await updateSettings(store, plan.settings, actor);
+  if (Object.keys(plan.settings).length > 0)
+    await p(() => updateSettings(store, plan.settings, actor));
 
   // Meeting kinds someone made, by name.
   const slugOf = new Map<string, string>();
   for (const c of plan.categories) {
-    const snap = await store.refresh();
+    const snap = await p(() => store.refresh());
     const found = snap.config.categories.find((x) => x.name.toLowerCase() === c.name.toLowerCase());
     if (found) slugOf.set(c.oldSlug, found.slug);
     else {
       const color = (CATEGORY_PALETTE as readonly string[]).includes(c.color)
         ? c.color
         : CATEGORY_PALETTE[0];
-      const made = await createCategory(store, { name: c.name, color }, actor);
+      const made = await p(() => createCategory(store, { name: c.name, color }, actor));
       slugOf.set(c.oldSlug, made.slug);
       console.log(`Made meeting kind ${made.name}`);
     }
@@ -44,7 +65,7 @@ export async function applyPlan(
 
   // Column changes the owner made in the old database (a column made optional, renamed, or shown in the table).
   {
-    const snap = await store.refresh();
+    const snap = await p(() => store.refresh());
     for (const old of plan.oldFields) {
       const slug = slugOf.get(old.category_slug) ?? old.category_slug;
       const now = snap.config.byCategory.get(slug)?.fields.find((f) => f.key === old.key);
@@ -58,7 +79,7 @@ export async function applyPlan(
       }
       if (Object.keys(patch).length === 0) continue;
       try {
-        await updateField(store, slug, old.key, patch, actor);
+        await p(() => updateField(store, slug, old.key, patch, actor));
         console.log(`Column ${slug}.${old.key}: ${JSON.stringify(patch)}`);
       } catch (err) {
         problems.push(
@@ -73,7 +94,7 @@ export async function applyPlan(
   for (const m of plan.meetings) {
     const category = slugOf.get(m.category) ?? m.category;
     try {
-      const r = await ctx.meetings.create({ id: m.id, category, values: m.values }, actor);
+      const r = await p(() => ctx.meetings.create({ id: m.id, category, values: m.values }, actor));
       meetingsDone += r.existing ? 0 : 1;
     } catch (err) {
       problems.push(
@@ -89,47 +110,55 @@ export async function applyPlan(
   for (const l of plan.lists) {
     let slug = l.existingSlug;
     if (!slug) {
-      const snap = await store.refresh();
+      const snap = await p(() => store.refresh());
       const found = snap.config.trackers.find(
         (t) => t.name.toLowerCase() === (l.name ?? '').toLowerCase(),
       );
       slug =
         found?.slug ??
         (
-          await createTracker(
-            store,
-            {
-              name: l.name as string,
-              item_name: l.itemName ?? 'item',
-              color: l.color ?? CATEGORY_PALETTE[0],
-            },
-            actor,
+          await p(() =>
+            createTracker(
+              store,
+              {
+                name: l.name as string,
+                item_name: l.itemName ?? 'item',
+                color: l.color ?? CATEGORY_PALETTE[0],
+              },
+              actor,
+            ),
           )
         ).slug;
+      await sleep(pause);
     }
+    const listSlug: string = slug;
     const keyOf = new Map<string, string>();
     for (const [key, change] of Object.entries(l.starting ?? {})) {
-      await updateField(store, slug, key, change, actor);
+      await p(() => updateField(store, listSlug, key, change, actor));
+      await sleep(pause);
     }
     for (const f of l.fields ?? []) {
-      const snap = await store.refresh();
+      const snap = await p(() => store.refresh());
       const existing = snap.config.byTracker.get(slug)?.fields.find((x) => x.label === f.label);
       const made =
         existing ??
-        (await addField(
-          store,
-          slug,
-          {
-            label: f.label,
-            type: f.type,
-            options: f.options,
-            allow_new_options: f.allow_new_options,
-            unit: f.unit,
-            help_text: f.help_text,
-            show_in_table: f.show_in_table,
-          },
-          actor,
+        (await p(() =>
+          addField(
+            store,
+            listSlug,
+            {
+              label: f.label,
+              type: f.type,
+              options: f.options,
+              allow_new_options: f.allow_new_options,
+              unit: f.unit,
+              help_text: f.help_text,
+              show_in_table: f.show_in_table,
+            },
+            actor,
+          ),
         ));
+      if (!existing) await sleep(pause);
       keyOf.set(f.key, made.key);
     }
     if (l.roles) {
@@ -137,7 +166,7 @@ export async function applyPlan(
       for (const k of ['title_key', 'status_key', 'due_key', 'group_key'] as const)
         if (roles[k]) roles[k] = keyOf.get(roles[k] as string) ?? roles[k];
       if (roles.sum_keys) roles.sum_keys = roles.sum_keys.map((k) => keyOf.get(k) ?? k);
-      await updateTracker(store, slug, { roles, calendar: false }, actor);
+      await p(() => updateTracker(store, listSlug, { roles, calendar: false }, actor));
     }
 
     let done = 0;
@@ -154,7 +183,9 @@ export async function applyPlan(
         }
       }
       try {
-        const r = await ctx.trackers.create(slug, { id: row.id, values, copying: true }, actor);
+        const r = await p(() =>
+          ctx.trackers.create(listSlug, { id: row.id, values, copying: true }, actor),
+        );
         done += r.existing ? 0 : 1;
       } catch (err) {
         problems.push(
@@ -164,7 +195,7 @@ export async function applyPlan(
       await sleep(pause);
     }
     // Teach each learning dropdown its values once, most used first.
-    const snap = await store.refresh();
+    const snap = await p(() => store.refresh());
     for (const f of snap.config.byTracker.get(slug)?.fields ?? []) {
       if (f.type !== 'select' || !f.allow_new_options) continue;
       const counts = seen.get(f.key);
@@ -175,7 +206,7 @@ export async function applyPlan(
         ...learned.filter((v) => !f.options.some((o) => o.toLowerCase() === v.toLowerCase())),
       ];
       if (options.length !== f.options.length)
-        await updateField(store, slug, f.key, { options }, actor);
+        await p(() => updateField(store, listSlug, f.key, { options }, actor));
     }
     console.log(`List ${slug}: ${done} rows copied (of ${l.rows.length})`);
   }
