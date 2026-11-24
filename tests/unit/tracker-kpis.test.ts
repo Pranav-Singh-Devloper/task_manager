@@ -3,6 +3,7 @@ import { buildSeedTrackers } from '../../shared/trackerSeed';
 import {
   financialYear,
   matchesPreset,
+  rowName,
   trackerKpis,
   type TrackerRow,
 } from '../../shared/trackerKpis';
@@ -241,5 +242,18 @@ describe('a tracker with columns removed', () => {
     const r = row({ status: 'On hold', completion_date: '2020-01-01' });
     expect(matchesPreset(r, 'overdue', { roles, today: TODAY })).toBe(false);
     expect(matchesPreset(r, 'open', { roles, today: TODAY })).toBe(true);
+  });
+});
+
+describe('a row’s name in the list', () => {
+  const roles = { ...seed('award_plan').tracker.settings.roles, short_key: 'short' };
+  it('is the short name when there is one, else the full name', () => {
+    expect(rowName({ project: 'A very long official name', short: 'Pkg-I' }, roles)).toBe('Pkg-I');
+    expect(rowName({ project: 'A very long official name', short: '  ' }, roles)).toBe(
+      'A very long official name',
+    );
+    expect(
+      rowName({ project: 'Full', short: 'Short' }, seed('award_plan').tracker.settings.roles),
+    ).toBe('Full');
   });
 });

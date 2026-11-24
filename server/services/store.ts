@@ -17,7 +17,7 @@ import {
 } from './config';
 import { orderOptionsByUse } from './lookups';
 import type { GoogleServices, TabInfo } from './google/types';
-import { parseRow, serializeRow, type RowRecord } from './rows';
+import { headingKeys, parseRow, serializeRow, type RowRecord } from './rows';
 
 /** Log tabs only grow and are read on demand, so they are not cached. */
 /** _audit only grows and is read on demand. _reschedules and _files are small enough to keep, for counts and search. */
@@ -362,17 +362,21 @@ export class SheetStore {
     await this.log.audit(...audits);
   }
 
-  /** A field added in the config (or a system column) that the tab's header lacks is appended to the header. */
+  /**
+   * Returns the tab's columns as keys. A field added in the config (or a system column) that the heading row lacks is
+   * appended to it. Headings the owner retyped keep their wording in the Sheet (see headingKeys).
+   */
   private async syncHeaders(
     cfg: TabConfig,
-    headers: string[],
+    raw: string[],
     rows: Cell[][],
     tabs: TabInfo[],
   ): Promise<string[]> {
+    const headers = headingKeys(raw, cfg.fields);
     const wanted = [...cfg.fields.filter((f) => !f.archived).map((f) => f.key), ...SYSTEM_COLUMNS];
     const missing = wanted.filter((k) => !headers.includes(k));
     if (missing.length === 0) return headers;
-    const next = [...headers, ...missing];
+    const next = [...raw, ...missing];
     const tab = tabs.find((t) => t.gid === cfg.tab.gid);
     if (tab && tab.columnCount < next.length) {
       await this.google.sheets.growGrid(this.spreadsheetId, cfg.tab.gid, tab.rowCount, next.length);
@@ -382,7 +386,7 @@ export class SheetStore {
     ]);
     if (rows.length === 0) rows.push(next);
     else rows[0] = next;
-    return next;
+    return [...headers, ...missing];
   }
 
   private buildCategory(

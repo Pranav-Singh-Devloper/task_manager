@@ -833,6 +833,8 @@
     "settingsTitle": "Settings of {name}",
     "settingsIntro": "Which columns the list's page counts with. Leave one empty if it does not apply.",
     "roleTitle": "Column that names a row",
+    "roleShort": "Short name shown in the list",
+    "roleShortHint": "The list shows this in place of the full name. The full name is seen when a row is opened.",
     "roleStatus": "Status column",
     "roleClosed": "Status values that mean finished",
     "roleClosedHint": "One per line.",

@@ -19,6 +19,7 @@ import {
   matchesSearch,
   trackerKpis,
   isClosed,
+  rowName,
   type Breakdown,
   type Preset,
   type TrackerRow,
@@ -142,8 +143,15 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
   if (filters.state !== undefined)
     active.push(t('filterState', { value: filters.state || t('notStarted') }));
 
+  // The name comes first, so it is not repeated as a column. With a short name, the full name is seen only on a
+  // row's own page.
   const columns = fields.filter(
-    (f) => f.show_in_table && !f.archived && f.key !== roles.title_key && f.key !== 'sr_no',
+    (f) =>
+      f.show_in_table &&
+      !f.archived &&
+      f.key !== roles.title_key &&
+      f.key !== roles.short_key &&
+      f.key !== 'sr_no',
   );
 
   return (
@@ -246,11 +254,14 @@ function RowList({
 }) {
   const t = useTranslations('trackers');
   const roles = tracker.settings.roles;
-  const titleOf = (r: TrackerRow) => text(r.values[roles.title_key]) || t('untitled');
+  const titleOf = (r: TrackerRow) => rowName(r.values, roles) || t('untitled');
   const cell = (f: FieldDef, r: TrackerRow) =>
     valueText(f, r.values[f.key] ?? null, meta.settings, words) ?? '—';
   const href = (r: TrackerRow) => `/trackers/${tracker.slug}/${r.id}`;
-  const titleLabel = fields.find((f) => f.key === roles.title_key)?.label ?? '';
+  const titleLabel =
+    fields.find((f) => f.key === (roles.short_key || roles.title_key))?.label ?? '';
+  // A long name is cut to two lines here; the whole of it is on the row's page.
+  const name = (r: TrackerRow) => <span className="line-clamp-2">{titleOf(r)}</span>;
 
   return (
     <>
@@ -260,9 +271,9 @@ function RowList({
           <li key={r.id} className="rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm">
             <Link
               href={href(r)}
-              className="inline-flex min-h-tap items-center text-lg font-semibold underline"
+              className="flex min-h-tap items-center text-lg font-semibold underline"
             >
-              {titleOf(r)}
+              {name(r)}
             </Link>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
               {columns.map((f) => (
@@ -295,12 +306,12 @@ function RowList({
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t-ui border-soft align-middle">
-                <td className="min-w-[12rem] px-4 py-2">
+                <td className="min-w-[12rem] max-w-[26rem] px-4 py-2">
                   <Link
                     href={href(r)}
-                    className="inline-flex min-h-tap items-center font-semibold underline"
+                    className="flex min-h-tap items-center font-semibold underline"
                   >
-                    {titleOf(r)}
+                    {name(r)}
                   </Link>
                   {r.incomplete.length > 0 && <Chip className="ml-2">{t('incomplete')}</Chip>}
                 </td>

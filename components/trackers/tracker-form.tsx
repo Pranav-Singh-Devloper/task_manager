@@ -13,7 +13,7 @@ import { ApiError, api } from '@/lib/api';
 import { useMeta, type Meta } from '@/lib/queries';
 import { shiftDate, todayIn } from '@/shared/dates';
 import { newId } from '@/shared/ids';
-import type { TrackerRow } from '@/shared/trackerKpis';
+import { rowName, type TrackerRow } from '@/shared/trackerKpis';
 import type { FieldDef, TrackerDef } from '@/shared/types';
 import { NOT_EDITABLE } from '@/shared/validation';
 
@@ -83,7 +83,7 @@ function Form({
   const today = todayIn(meta.settings.timezone);
   const roles = tracker.settings.roles;
   const title = existing
-    ? String(existing.values[roles.title_key] ?? '') || t('untitled')
+    ? rowName(existing.values, roles) || t('untitled')
     : t('newTitle', { item: tracker.item_name });
 
   async function save() {

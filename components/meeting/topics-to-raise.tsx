@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardTitle } from '@/components/ui';
 import { api } from '@/lib/api';
 import type { Meta, TrackerData } from '@/lib/queries';
-import { isClosed } from '@/shared/trackerKpis';
+import { isClosed, rowName } from '@/shared/trackerKpis';
 
 /**
  * On a meeting with someone, the open discussion topics with that person (from any Discussions-style list), so they
@@ -47,7 +47,7 @@ export function TopicsToRaise({
         id: row.id,
         slug: list.slug,
         who: String(row.values[roles.group_key] ?? ''),
-        topic: String(row.values[roles.title_key] ?? '') || list.name,
+        topic: rowName(row.values, roles) || list.name,
       }));
   });
   if (topics.length === 0) return null;

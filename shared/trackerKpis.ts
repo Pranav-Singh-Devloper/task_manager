@@ -108,6 +108,11 @@ const dateOf = (v: FieldValue | undefined): string | null =>
   typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
 const dayOf = (iso: string): string => iso.slice(0, 10);
 
+/** What a row is called in lists and on the calendar: its short name when it has one, else its full name. */
+export function rowName(values: Record<string, FieldValue>, roles: TrackerRoles): string {
+  return (roles.short_key ? str(values[roles.short_key]) : '') || str(values[roles.title_key]);
+}
+
 export function statusOf(row: TrackerRow, roles: TrackerRoles): string {
   return roles.status_key ? str(row.values[roles.status_key]) : '';
 }

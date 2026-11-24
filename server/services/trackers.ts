@@ -15,7 +15,7 @@ import type { Entry, Snapshot, SheetStore } from './store';
 import type { Logger } from 'pino';
 import { calendarEventIdFor } from '../../shared/ids';
 import { shiftDate } from '../../shared/dates';
-import { isClosed } from '../../shared/trackerKpis';
+import { isClosed, rowName } from '../../shared/trackerKpis';
 import { upsertEvent } from './calendarSync';
 import { isGoogleApiError } from './google/errors';
 import type { CalendarEventInput } from './google/types';
@@ -101,7 +101,7 @@ export class TrackerService {
           ? v.join(', ')
           : String(v);
     };
-    const title = text(roles.title_key) || tracker.name;
+    const title = rowName(row.values, roles) || tracker.name;
     const group =
       roles.group_key && roles.group_key !== roles.status_key ? text(roles.group_key) : '';
     const due = fields.find((f) => f.key === roles.due_key)?.label ?? '';

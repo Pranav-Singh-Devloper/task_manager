@@ -175,6 +175,57 @@ describe('tracker rows', () => {
     expect(pasted?.values.status).toBe('On track');
   });
 
+  it('reads a column whose heading was retyped in the Sheet, and writes back to it without adding another', async () => {
+    const { f, trackers } = await setup();
+    const sheet = await f.tab('Award Plan');
+    const retyped = sheet.headers.map((h) => (h === 'bdd' ? 'BDD' : h === 'ae_ie' ? 'AE_IE' : h));
+    const at = sheet.headers.indexOf('bdd');
+    await f.mock.services.sheets.writeBlocks(f.spreadsheetId, [
+      { gid: sheet.gid, startRow: 1, rows: [retyped] },
+      {
+        gid: sheet.gid,
+        startRow: 2,
+        rows: [sheet.rows[1]!.map((c, k) => (k === at ? '15.01.2027' : c))],
+      },
+    ]);
+    await f.store.refresh();
+    const id = String(sheet.rows[1]![sheet.headers.indexOf('id')]);
+    const first = (await trackers.list('award_plan')).rows.find((r) => r.id === id)!;
+    expect(first.values.bdd).toBe('2027-01-15');
+
+    await trackers.update(
+      'award_plan',
+      first.id,
+      { values: { bdd: '2027-02-01' }, rev: first.rev },
+      dad,
+    );
+    const after = await f.tab('Award Plan');
+    expect(after.headers).toEqual(retyped); // the owner's wording stays, and no second bdd column
+    expect(after.rows[1]![at]).toBe('2027-02-01');
+  });
+
+  it('shows a short name in the list when one is chosen, and only a text column can be one', async () => {
+    const { f } = await setup();
+    const { addField } = await import('../../server/services/admin/columns');
+    const { updateTracker } = await import('../../server/services/admin/trackers');
+    const short = await addField(
+      f.store,
+      'award_plan',
+      { label: 'Name in short', type: 'long_text' },
+      dad,
+    );
+    const changed = await updateTracker(
+      f.store,
+      'award_plan',
+      { roles: { short_key: short.key } },
+      dad,
+    );
+    expect(changed.settings.roles.short_key).toBe('name_in_short');
+    await expect(
+      updateTracker(f.store, 'award_plan', { roles: { short_key: 'length_km' } }, dad),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
   it('sets the award target, and the dashboard reads it', async () => {
     const { trackers } = await setup();
     await trackers.setTargets('award_plan', { km: 500, cr: 9000 }, dad);

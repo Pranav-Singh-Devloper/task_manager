@@ -185,6 +185,46 @@ test.describe('a new list', () => {
   });
 });
 
+test.describe('a short name', () => {
+  test('stands in for a long name in the list, and the full name is on the row’s page', async ({
+    page,
+  }) => {
+    const headers = { 'X-Requested-With': 'mm' };
+    const made = await page.request.post('/api/admin/trackers', {
+      headers,
+      data: { name: `Works ${uid()}`, item_name: 'work', color: '#1D4ED8' },
+    });
+    const { tracker } = (await made.json()) as { tracker: { slug: string; name: string } };
+    const field = await page.request.post('/api/admin/fields', {
+      headers,
+      data: {
+        category: tracker.slug,
+        label: 'Name in short',
+        type: 'long_text',
+        show_in_table: true,
+      },
+    });
+    const { field: short } = (await field.json()) as { field: { key: string } };
+    await page.request.patch(`/api/admin/trackers/${tracker.slug}`, {
+      headers,
+      data: { roles: { short_key: short.key } },
+    });
+    const long =
+      'Construction of a four lane road from one town to another, a very long official name';
+    await page.request.post(`/api/trackers/${tracker.slug}/rows`, {
+      headers,
+      data: { id: ulid(), values: { name: long, [short.key]: 'Town road' } },
+    });
+
+    await openList(page, tracker.slug, tracker.name);
+    await expect(rowLinks(page, tracker.slug)).toHaveText(['Town road']);
+    await expect(page.getByText(long)).toHaveCount(0);
+    await rowLinks(page, tracker.slug).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Town road' })).toBeVisible();
+    await expect(page.getByLabel(/^Name/).first()).toHaveValue(long);
+  });
+});
+
 test.describe('lists and meetings together', () => {
   test('a meeting with Member(T) shows the open topics to raise with them', async ({ page }) => {
     const m = await createViaApi(

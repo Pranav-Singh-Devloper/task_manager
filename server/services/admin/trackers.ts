@@ -222,6 +222,12 @@ export async function updateTracker(
     'The name column must be a short text column.',
   );
   need(
+    roles.short_key,
+    'short_key',
+    (f) => f.type === 'text' || f.type === 'long_text',
+    'The short name must be a text column.',
+  );
+  need(
     roles.status_key,
     'status_key',
     (f) => f.type === 'select',

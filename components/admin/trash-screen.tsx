@@ -9,6 +9,7 @@ import { stampText } from '@/components/meeting/format';
 import { ApiError, api } from '@/lib/api';
 import { useMeta, type TrackerData } from '@/lib/queries';
 import type { Meeting } from '@/shared/meeting';
+import { rowName } from '@/shared/trackerKpis';
 import { TypedConfirm } from './typed-confirm';
 
 /** Admin, Trash (§7.9 c): deleted meetings, with Restore and Delete forever. */
@@ -133,7 +134,7 @@ function ListTrash() {
     return r.data.rows.map((row) => ({
       row,
       list,
-      title: String(row.values[list.settings.roles.title_key] ?? '') || list.name,
+      title: rowName(row.values, list.settings.roles) || list.name,
     }));
   });
   // Stays on screen after the last row is restored, so its "Restored …" message can be read.

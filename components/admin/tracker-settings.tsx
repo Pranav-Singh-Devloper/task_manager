@@ -57,8 +57,8 @@ export function TrackerSettings({ tracker, fields }: { tracker: TrackerDef; fiel
     }
   }
 
-  const select = (key: keyof TrackerRoles, label: string, types: FieldType[]) => (
-    <FormField name={`role-${key}`} label={label} error={errors[key]}>
+  const select = (key: keyof TrackerRoles, label: string, types: FieldType[], hint?: string) => (
+    <FormField name={`role-${key}`} label={label} hint={hint} error={errors[key]}>
       {(c) => (
         <Select
           id={c.id}
@@ -142,6 +142,7 @@ export function TrackerSettings({ tracker, fields }: { tracker: TrackerDef; fiel
         <p className="text-muted">{t('settingsIntro')}</p>
         <div className="grid gap-4 lg:grid-cols-2">
           {select('title_key', t('roleTitle'), ['text'])}
+          {select('short_key', t('roleShort'), ['text', 'long_text'], t('roleShortHint'))}
           {select('status_key', t('roleStatus'), ['select'])}
           <FormField
             name="role-closed"

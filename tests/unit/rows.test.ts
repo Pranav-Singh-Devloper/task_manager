@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildSeedConfig } from '../../shared/seed';
 import { SYSTEM_COLUMNS, categoryTabHeaders } from '../../shared/schema';
 import type { Cell } from '../../shared/types';
-import { parseRow, serializeRow } from '../../server/services/rows';
+import { headingKeys, parseRow, serializeRow } from '../../server/services/rows';
 
 const seed = buildSeedConfig('2026-11-14T00:00:00.000Z');
 const fields = seed.fields.filter((f) => f.category_slug === 'ccie');
@@ -182,5 +182,25 @@ describe('serializeRow', () => {
 
   it('has a column for every system field', () => {
     for (const c of SYSTEM_COLUMNS) expect(headers).toContain(c);
+  });
+});
+
+describe('headings retyped in the Sheet', () => {
+  it('still finds a column by its key or its name, whatever the capitals and spacing', () => {
+    const raw = headers.map((h) =>
+      h === 'case_id' ? 'CASE ID' : h === 'project_name' ? 'Project name ' : h,
+    );
+    expect(headingKeys(raw, fields)).toEqual(headers);
+    const label = fields.find((f) => f.key === 'project_name')!.label;
+    expect(headingKeys([label.toUpperCase()], fields)).toEqual(['project_name']);
+  });
+
+  it('prefers a heading that is exactly the key, and leaves headings it does not know alone', () => {
+    expect(headingKeys(['Case_Id', 'case_id', 'My notes', ''], fields)).toEqual([
+      'Case_Id',
+      'case_id',
+      'My notes',
+      '',
+    ]);
   });
 });

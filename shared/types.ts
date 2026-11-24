@@ -113,6 +113,11 @@ export type TrackerKind = (typeof TRACKER_KINDS)[number];
 export interface TrackerRoles {
   /** The column that names a row (project, topic, event). */
   title_key: string;
+  /**
+   * A short name for the list. When set, the list shows it in place of the full name, which is seen when a row is
+   * opened. A row without one shows its full name.
+   */
+  short_key: string;
   /** The status or stage column. */
   status_key: string;
   /** Status values that mean "finished": these rows are not open. */

@@ -59,6 +59,33 @@ function readValue(f: FieldDef, raw: Cell | undefined, problems: string[]): Fiel
 }
 
 /** Reads one Sheet row by header name. Padded, ragged and re-ordered rows are fine. Computed columns are not stored. */
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+/**
+ * Reads a tab's heading row as column keys. A heading someone retyped in the Sheet ("BDD" for bdd, or the column's
+ * name, "BDD (Bid Due Date)") still counts for its column, ignoring capitals, spaces and punctuation. A heading
+ * that is exactly a key wins over a retyped one, and each column is matched once.
+ */
+export function headingKeys(raw: string[], fields: FieldDef[]): string[] {
+  const wanted = [
+    ...fields.map((f) => ({ key: f.key, label: f.label })),
+    ...SYSTEM_COLUMNS.map((k) => ({ key: k as string, label: k as string })),
+  ];
+  const isKey = new Set(wanted.map((w) => w.key));
+  const taken = new Set(raw.filter((h) => isKey.has(h)));
+  return raw.map((h) => {
+    if (isKey.has(h)) return h;
+    const s = squash(h);
+    if (!s) return h;
+    const w = wanted.find(
+      (x) => !taken.has(x.key) && (squash(x.key) === s || squash(x.label) === s),
+    );
+    if (!w) return h;
+    taken.add(w.key);
+    return w.key;
+  });
+}
+
 export function parseRow(headers: string[], row: Cell[], fields: FieldDef[]): RowRecord {
   const at = (key: string): Cell | undefined => {
     const i = headers.indexOf(key);

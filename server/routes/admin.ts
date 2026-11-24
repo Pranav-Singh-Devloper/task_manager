@@ -247,6 +247,7 @@ export function adminRouter(data: DataLayer): Router {
         roles: z
           .object({
             title_key: key,
+            short_key: key,
             status_key: key,
             closed_values: z.array(z.string().max(200)).max(20),
             due_key: key,

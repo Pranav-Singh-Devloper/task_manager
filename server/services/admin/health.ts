@@ -57,8 +57,15 @@ export async function systemHealth(store: SheetStore, ownerEmail: string | null)
 
   const unmanaged: Health['unmanaged_columns'] = [];
   const system = new Set<string>(SYSTEM_COLUMNS);
-  for (const [slug, data] of snap.categories) {
-    const known = new Set((snap.config.byCategory.get(slug)?.fields ?? []).map((f) => f.key));
+  const tabs = [
+    ...[...snap.categories].map(([slug, data]) => ({
+      data,
+      cfg: snap.config.byCategory.get(slug),
+    })),
+    ...[...snap.trackers].map(([slug, data]) => ({ data, cfg: snap.config.byTracker.get(slug) })),
+  ];
+  for (const { data, cfg } of tabs) {
+    const known = new Set((cfg?.fields ?? []).map((f) => f.key));
     for (const h of data.headers) {
       if (h && !known.has(h) && !system.has(h)) unmanaged.push({ tab: data.title, column: h });
     }

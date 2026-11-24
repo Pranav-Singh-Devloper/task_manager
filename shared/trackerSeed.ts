@@ -269,6 +269,7 @@ export const SEED_TRACKERS: SeedTracker[] = [
 
 export const EMPTY_ROLES: TrackerRoles = {
   title_key: '',
+  short_key: '',
   status_key: '',
   closed_values: [],
   due_key: '',
