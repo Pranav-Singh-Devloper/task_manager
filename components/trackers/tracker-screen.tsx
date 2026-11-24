@@ -279,7 +279,9 @@ function RowList({
               {columns.map((f) => (
                 <div key={f.key} className="contents">
                   <dt className="font-semibold">{f.label}</dt>
-                  <dd className="break-words">{cell(f, r)}</dd>
+                  <dd className={clsx('break-words', f.type === 'long_text' && 'line-clamp-3')}>
+                    {cell(f, r)}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -306,7 +308,7 @@ function RowList({
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-t-ui border-soft align-middle">
-                <td className="min-w-[12rem] max-w-[26rem] px-4 py-2">
+                <td className="min-w-[16rem] max-w-[26rem] px-4 py-2">
                   <Link
                     href={href(r)}
                     className="flex min-h-tap items-center font-semibold underline"
@@ -322,9 +324,15 @@ function RowList({
                     className={clsx(
                       'px-4 py-2',
                       f.type !== 'long_text' && f.type !== 'text' && 'whitespace-nowrap',
+                      f.type === 'long_text' && 'min-w-[14rem]',
                     )}
                   >
-                    {cell(f, r)}
+                    {/* Long notes are cut to three lines here; the whole of them is on the row's page. */}
+                    {f.type === 'long_text' ? (
+                      <span className="line-clamp-3">{cell(f, r)}</span>
+                    ) : (
+                      cell(f, r)
+                    )}
                   </td>
                 ))}
               </tr>
