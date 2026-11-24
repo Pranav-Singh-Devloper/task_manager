@@ -221,6 +221,7 @@ test.describe('a short name', () => {
     await expect(page.getByText(long)).toHaveCount(0);
     await rowLinks(page, tracker.slug).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Town road' })).toBeVisible();
+    await expect(page.getByText(long, { exact: true })).toBeVisible();
     await expect(page.getByLabel(/^Name/).first()).toHaveValue(long);
   });
 });

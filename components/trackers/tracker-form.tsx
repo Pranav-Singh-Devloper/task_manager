@@ -85,6 +85,7 @@ function Form({
   const title = existing
     ? rowName(existing.values, roles) || t('untitled')
     : t('newTitle', { item: tracker.item_name });
+  const fullName = existing ? String(existing.values[roles.title_key] ?? '').trim() : '';
 
   async function save() {
     setSaving(true);
@@ -165,6 +166,10 @@ function Form({
           {t('backToList', { name: tracker.name })}
         </Link>
       </div>
+      {existing && fullName && fullName !== title && (
+        // The list shows the short name; the full name is read here in whole.
+        <p className="text-lg font-semibold">{fullName}</p>
+      )}
       {existing && (
         <p className="text-muted">
           {t('lastChanged', { when: stampText(existing.updated_at, meta.settings) })}
