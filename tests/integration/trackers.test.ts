@@ -226,6 +226,27 @@ describe('tracker rows', () => {
     ).rejects.toMatchObject({ status: 400 });
   });
 
+  it('keeps the owner’s own order of rows, drops unknown ids, and goes back to the date order', async () => {
+    const { f, trackers } = await setup();
+    const ids = (await trackers.list('award_plan')).rows.map((r) => r.id);
+    const mine = [...ids].reverse();
+    const saved = await trackers.setOrder(
+      'award_plan',
+      [...mine, '0ZZZZZZZZZZZZZZZZZZZZZZZZZ'],
+      dad,
+    );
+    expect(saved.settings.order).toEqual(mine);
+    expect((await trackers.list('award_plan')).tracker.settings.order).toEqual(mine);
+
+    // Changing the list's settings in Admin keeps the order.
+    const { updateTracker } = await import('../../server/services/admin/trackers');
+    await updateTracker(f.store, 'award_plan', { name: 'Award Plan' }, dad);
+    expect((await trackers.list('award_plan')).tracker.settings.order).toEqual(mine);
+
+    await trackers.setOrder('award_plan', [], dad);
+    expect((await trackers.list('award_plan')).tracker.settings.order).toEqual([]);
+  });
+
   it('sets the award target, and the dashboard reads it', async () => {
     const { trackers } = await setup();
     await trackers.setTargets('award_plan', { km: 500, cr: 9000 }, dad);

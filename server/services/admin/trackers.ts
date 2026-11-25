@@ -284,10 +284,17 @@ export async function updateTracker(
       (await store.google.sheets.batchGet(store.spreadsheetId, [tab.gid]))[tab.gid] ?? [];
     const index = rows.findIndex((r, i) => i > 0 && String(r[0] ?? '').trim() === slug);
     if (index < 0) throw new NotFoundError("We couldn't find that list.");
-    // Keep the targets as they are in the Sheet now: they are changed on the list's own page.
+    // Keep the targets and the arranged order as they are in the Sheet now: they are changed on the list's own page.
     const live = parseTrackers([rows[0] ?? [], rows[index] ?? []]).items[0];
     const merged = live
-      ? { ...next, settings: { ...next.settings, targets: live.settings.targets } }
+      ? {
+          ...next,
+          settings: {
+            ...next.settings,
+            targets: live.settings.targets,
+            order: live.settings.order,
+          },
+        }
       : next;
     await store.google.sheets.updateRow(
       store.spreadsheetId,

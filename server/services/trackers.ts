@@ -503,6 +503,28 @@ export class TrackerService {
       return n;
     };
     const next = { km: clean(targets.km), cr: clean(targets.cr) };
+    return this.changeSettings(slug, (s) => ({ ...s, targets: next }), actor, {
+      targets: [null, JSON.stringify(next)],
+    });
+  }
+
+  /** "Arrange": the owner's own order of rows. An empty list goes back to the date that matters. */
+  async setOrder(slug: string, order: string[], actor: Actor): Promise<TrackerDef> {
+    const snap = await this.store.snapshot();
+    this.cfgOf(snap, slug);
+    const known = new Set(snap.trackers.get(slug)?.entries.keys() ?? []);
+    const next = [...new Set(order)].filter((id) => known.has(id));
+    return this.changeSettings(slug, (s) => ({ ...s, order: next }), actor, {
+      order: [null, next.length > 0 ? `${next.length} rows arranged` : 'by date'],
+    });
+  }
+
+  private async changeSettings(
+    slug: string,
+    change: (s: TrackerDef['settings']) => TrackerDef['settings'],
+    actor: Actor,
+    changes: Record<string, [unknown, unknown]>,
+  ): Promise<TrackerDef> {
     const snap = await this.store.snapshot();
     this.cfgOf(snap, slug);
     const tab = snap.tabs.find((t) => t.title === TAB.trackers);
@@ -514,7 +536,7 @@ export class TrackerService {
       const current = parsed.find((t) => t.slug === slug);
       const index = rows.findIndex((r, i) => i > 0 && String(r[0] ?? '').trim() === slug);
       if (!current || index < 0) throw new NotFoundError("We couldn't find that list.");
-      const tracker: TrackerDef = { ...current, settings: { ...current.settings, targets: next } };
+      const tracker: TrackerDef = { ...current, settings: change(current.settings) };
       await google.sheets.updateRow(spreadsheetId, tab.gid, index + 1, trackerToRow(tracker));
       return tracker;
     });
@@ -524,7 +546,7 @@ export class TrackerService {
       table: TAB.trackers,
       rowId: slug,
       source: actor.source,
-      changes: { targets: [null, JSON.stringify(next)] },
+      changes,
     });
     await this.store.refresh();
     return updated;

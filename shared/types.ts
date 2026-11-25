@@ -147,6 +147,11 @@ export interface TrackerSettings {
   targets: TrackerTargets;
   /** Put each open row's "date that matters" on Google Calendar as an all-day event. */
   calendar: boolean;
+  /**
+   * The owner's own order of rows, by id, set with "Arrange". Empty: unfinished rows first, then by the date that
+   * matters. Rows missing from it (added later) come after the arranged ones.
+   */
+  order?: string[];
 }
 
 export interface TrackerDef {

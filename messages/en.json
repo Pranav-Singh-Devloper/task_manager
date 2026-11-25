@@ -40,7 +40,6 @@
     "sizeSmallest": "A−−",
     "sizeSmaller": "A−",
     "sizeNormal": "A",
-
     "highContrast": "High contrast",
     "on": "On",
     "off": "Off",
@@ -847,6 +846,18 @@
     "listActive": "Show this list",
     "listCalendar": "Put the date that matters on Google Calendar (open rows only, as all-day events)",
     "saveSettings": "Save settings",
-    "settingsSaved": "Settings saved."
+    "settingsSaved": "Settings saved.",
+    "edit": "Edit",
+    "editRow": "Edit {name}",
+    "savedName": "Saved {name}.",
+    "arrange": "Arrange rows",
+    "arrangeDone": "Done arranging",
+    "arrangeHint": "Move a row with ↑ and ↓, or drag it on a computer. The new order is saved by itself and kept for everyone.",
+    "orderColumn": "Order",
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "sortByDate": "Sort by {column} again",
+    "sortUsual": "Back to the usual order",
+    "orderFailed": "The new order could not be saved. Please try again."
   }
 }

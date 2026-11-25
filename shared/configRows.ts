@@ -114,6 +114,7 @@ function trackerSettings(raw: string): { settings: TrackerSettings; ok: boolean 
         },
         targets: { km: asNum(parsed.targets?.km), cr: asNum(parsed.targets?.cr) },
         calendar: parsed.calendar === true,
+        order: asList(parsed.order).filter((id) => /^[0-9A-Z]{26}$/.test(id)),
       },
       ok: true,
     };

@@ -226,6 +226,105 @@ test.describe('a short name', () => {
   });
 });
 
+test.describe('changing a list in place', () => {
+  async function freshList(page: Page, rows: { name: string; date: string }[]) {
+    const headers = { 'X-Requested-With': 'mm' };
+    const made = await page.request.post('/api/admin/trackers', {
+      headers,
+      data: { name: `Bids ${uid()}`, item_name: 'bid', color: '#1D4ED8' },
+    });
+    const { tracker } = (await made.json()) as { tracker: { slug: string; name: string } };
+    for (const [label, type] of [
+      ['Bid due', 'date'],
+      ['Notes', 'long_text'],
+    ] as const) {
+      await page.request.post('/api/admin/fields', {
+        headers,
+        data: { category: tracker.slug, label, type, show_in_table: true },
+      });
+    }
+    await page.request.patch(`/api/admin/trackers/${tracker.slug}`, {
+      headers,
+      data: { roles: { due_key: 'bid_due' } },
+    });
+    for (const r of rows)
+      await page.request.post(`/api/trackers/${tracker.slug}/rows`, {
+        headers,
+        data: { id: ulid(), values: { name: r.name, bid_due: r.date } },
+      });
+    await openList(page, tracker.slug, tracker.name);
+    return tracker;
+  }
+
+  test('a row’s date and notes are changed from the list with Edit', async ({ page }) => {
+    const tracker = await freshList(page, [{ name: 'Ring road', date: '2030-03-01' }]);
+    await page.getByRole('button', { name: 'Edit Ring road' }).locator('visible=true').click();
+    const form = page.getByRole('form', { name: 'Edit Ring road' }).locator('visible=true');
+    await form.getByLabel('Bid due').fill('2030-04-15');
+    await form.getByLabel('Notes').fill('Pre-bid meeting held');
+    await form.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Saved Ring road.').first()).toBeVisible();
+    await expect(form).toHaveCount(0);
+    await expect(page.getByText('Pre-bid meeting held').locator('visible=true')).toBeVisible();
+    await expect(page.getByText(/15 Apr 2030/).locator('visible=true')).toBeVisible();
+    expect(tracker.slug).toBeTruthy();
+  });
+
+  test('rows are arranged in the owner’s order, kept after a reload, and sorted by date again', async ({
+    page,
+  }) => {
+    await freshList(page, [
+      { name: 'First by date', date: '2030-01-01' },
+      { name: 'Second by date', date: '2030-02-01' },
+      { name: 'Third by date', date: '2030-03-01' },
+    ]);
+    const slug = new URL(page.url()).pathname.split('/')[2]!;
+    await expect(rowLinks(page, slug)).toHaveText([
+      'First by date',
+      'Second by date',
+      'Third by date',
+    ]);
+    await page.getByRole('button', { name: 'Arrange rows' }).click();
+    await page
+      .getByRole('button', { name: 'Move Third by date up' })
+      .locator('visible=true')
+      .click();
+    await page
+      .getByRole('button', { name: 'Move Third by date up' })
+      .locator('visible=true')
+      .click();
+    await expect(rowLinks(page, slug)).toHaveText([
+      'Third by date',
+      'First by date',
+      'Second by date',
+    ]);
+    await expect(
+      page.getByRole('button', { name: 'Move Third by date up' }).locator('visible=true'),
+    ).toBeDisabled();
+    await page.getByRole('button', { name: 'Done arranging' }).click();
+
+    // Saved for everyone: still in that order after a reload.
+    await expect(page.getByRole('button', { name: 'Sort by Bid due again' })).toBeVisible();
+    await expect
+      .poll(
+        async () => {
+          await page.reload();
+          await expect(page.getByText('Loading…')).toHaveCount(0);
+          return rowLinks(page, slug).allTextContents();
+        },
+        { timeout: 15000 },
+      )
+      .toEqual(['Third by date', 'First by date', 'Second by date']);
+
+    await page.getByRole('button', { name: 'Sort by Bid due again' }).click();
+    await expect(rowLinks(page, slug)).toHaveText([
+      'First by date',
+      'Second by date',
+      'Third by date',
+    ]);
+  });
+});
+
 test.describe('lists and meetings together', () => {
   test('a meeting with Member(T) shows the open topics to raise with them', async ({ page }) => {
     const m = await createViaApi(

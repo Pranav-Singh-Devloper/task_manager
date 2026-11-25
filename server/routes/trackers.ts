@@ -25,6 +25,7 @@ const createBody = z.object({ id: z.string(), values: values.default({}) });
 const patchBody = z.object({ rev, values });
 const target = z.union([z.number(), z.string().max(20), z.null()]).optional();
 const targetsBody = z.object({ km: target, cr: target });
+const orderBody = z.object({ order: z.array(z.string().regex(/^[0-9A-Z]{26}$/)).max(5000) });
 
 const actorOf = (req: Request): Actor => ({
   email: ((req.res?.locals.session ?? {}) as VerifiedSession).email,
@@ -91,6 +92,14 @@ export function trackersRouter(data: DataLayer): Router {
       actorOf(req),
     );
     res.json({ row });
+  });
+
+  router.patch('/trackers/:slug/order', async (req, res) => {
+    const body = parse(orderBody, req.body);
+    const { trackers } = await data.use();
+    res.json({
+      tracker: await trackers.setOrder(String(req.params.slug), body.order, actorOf(req)),
+    });
   });
 
   router.patch('/trackers/:slug/targets', async (req, res) => {

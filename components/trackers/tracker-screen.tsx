@@ -5,13 +5,14 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { FieldControl } from '@/components/meeting/field-control';
 import { valueText } from '@/components/meeting/format';
 import { PageTitle } from '@/components/motion';
-import { Button, Chip, FormField, Input, buttonClasses } from '@/components/ui';
+import { Button, Chip, FormField, Input, buttonClasses, useToast } from '@/components/ui';
 import { ApiError, api } from '@/lib/api';
 import { useMeta, useTrackerRows, type Meta, type TrackerData } from '@/lib/queries';
-import { todayIn } from '@/shared/dates';
+import { shiftDate, todayIn } from '@/shared/dates';
 import { currentStage, parseStages } from '@/shared/stages';
 import {
   PRESETS,
@@ -25,6 +26,7 @@ import {
   type TrackerRow,
 } from '@/shared/trackerKpis';
 import type { FieldDef, TrackerDef } from '@/shared/types';
+import { NOT_EDITABLE } from '@/shared/validation';
 import { KpiTiles, num } from './kpi-tiles';
 
 /** /trackers/[slug]: the tracker's numbers, a breakdown, and its rows, all on one screen where it fits. */
@@ -104,6 +106,90 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
+  // ---- order: the owner's own ("Arrange"), else unfinished first and then the date that matters ----
+  const client = useQueryClient();
+  const toast = useToast();
+  const [arranging, setArranging] = useState(false);
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const order = localOrder ?? tracker.settings.order ?? [];
+  const byDate = (a: TrackerRow, b: TrackerRow) => {
+    const ca = isClosed(a, roles) ? 1 : 0;
+    const cb = isClosed(b, roles) ? 1 : 0;
+    if (ca !== cb) return ca - cb;
+    const da = text(a.values[roles.due_key]) || '9999';
+    const db = text(b.values[roles.due_key]) || '9999';
+    if (da !== db) return da < db ? -1 : 1;
+    return (Number(a.values.sr_no) || 0) - (Number(b.values.sr_no) || 0);
+  };
+  const position = new Map(order.map((id, i) => [id, i]));
+  const arranged = (a: TrackerRow, b: TrackerRow) => {
+    const ia = position.get(a.id);
+    const ib = position.get(b.id);
+    if (ia !== undefined && ib !== undefined) return ia - ib;
+    if (ia !== undefined) return -1;
+    if (ib !== undefined) return 1;
+    return byDate(a, b);
+  };
+
+  // Several moves in a row are saved once, so Google's write limit is not reached. "Done arranging" and leaving the
+  // page save at once.
+  const unsaved = useRef<string[] | null>(null);
+  async function sendOrder(next: string[]) {
+    try {
+      await api(`/trackers/${tracker.slug}/order`, { method: 'PATCH', body: { order: next } });
+      await client.invalidateQueries({ queryKey: ['tracker', tracker.slug] });
+      await client.invalidateQueries({ queryKey: ['meta'] });
+      setLocalOrder((cur) => (cur === next ? null : cur));
+    } catch (e) {
+      setLocalOrder(null);
+      toast.show({ message: e instanceof ApiError ? e.message : t('orderFailed') });
+    }
+  }
+  function flushOrder() {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    const next = unsaved.current;
+    unsaved.current = null;
+    if (next) void sendOrder(next);
+  }
+  function saveOrder(next: string[], now = false) {
+    setLocalOrder(next);
+    unsaved.current = next;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(flushOrder, now ? 0 : 900);
+  }
+  const slugRef = useRef(tracker.slug);
+  useEffect(() => {
+    // Leaving the page (or the app) with a move not yet saved: send it on the way out.
+    const leave = () => {
+      const next = unsaved.current;
+      if (!next) return;
+      unsaved.current = null;
+      void fetch(`/api/trackers/${slugRef.current}/order`, {
+        method: 'PATCH',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'mm' },
+        body: JSON.stringify({ order: next }),
+      });
+    };
+    window.addEventListener('pagehide', leave);
+    return () => {
+      window.removeEventListener('pagehide', leave);
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      leave();
+    };
+  }, []);
+
+  function move(id: string, target: string, after: boolean) {
+    const all = [...data.rows].sort(arranged).map((r) => r.id);
+    const rest = all.filter((x) => x !== id);
+    const at = rest.indexOf(target);
+    if (at < 0) return;
+    rest.splice(after ? at + 1 : at, 0, id);
+    saveOrder(rest);
+  }
+
   const shown = data.rows
     .filter((r) => matchesPreset(r, filters.show, { roles, today, days: filters.days }))
     .filter((r) => !filters.group || text(r.values[roles.group_key]) === filters.group)
@@ -112,16 +198,7 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
       (r) => filters.state === undefined || (nowAt(r, roles.stages_key) ?? '') === filters.state,
     )
     .filter((r) => matchesSearch(r, fields, filters.q))
-    .sort((a, b) => {
-      // Open rows first, then the nearest date that matters, then the number.
-      const ca = isClosed(a, roles) ? 1 : 0;
-      const cb = isClosed(b, roles) ? 1 : 0;
-      if (ca !== cb) return ca - cb;
-      const da = text(a.values[roles.due_key]) || '9999';
-      const db = text(b.values[roles.due_key]) || '9999';
-      if (da !== db) return da < db ? -1 : 1;
-      return (Number(a.values.sr_no) || 0) - (Number(b.values.sr_no) || 0);
-    });
+    .sort(arranged);
 
   const active: string[] = [];
   if (filters.show !== 'all')
@@ -208,9 +285,33 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
               </Button>
             </div>
           )}
-          <p className="text-muted">
-            {t('count', { shown: shown.length, total: data.rows.length })}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-muted">
+              {t('count', { shown: shown.length, total: data.rows.length })}
+            </p>
+            {data.rows.length > 1 && (
+              <Button
+                aria-pressed={arranging}
+                onClick={() => {
+                  if (arranging) flushOrder();
+                  setArranging((a) => !a);
+                }}
+                variant={arranging ? 'primary' : 'outline'}
+              >
+                {arranging ? t('arrangeDone') : t('arrange')}
+              </Button>
+            )}
+            {order.length > 0 && (
+              <Button onClick={() => saveOrder([], true)}>
+                {roles.due_key
+                  ? t('sortByDate', {
+                      column: fields.find((f) => f.key === roles.due_key)?.label ?? '',
+                    })
+                  : t('sortUsual')}
+              </Button>
+            )}
+          </div>
+          {arranging && <p role="status">{t('arrangeHint')}</p>}
           {shown.length === 0 ? (
             <p className="rounded-2xl border-ui border-soft bg-surface p-4">
               {data.rows.length === 0 ? t('empty') : t('emptyFiltered')}
@@ -223,6 +324,8 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
               rows={shown}
               meta={meta}
               words={words}
+              arranging={arranging}
+              onMove={move}
             />
           )}
         </section>
@@ -237,6 +340,8 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
   );
 }
 
+type Layout = 'card' | 'table';
+
 function RowList({
   tracker,
   fields,
@@ -244,6 +349,8 @@ function RowList({
   rows,
   meta,
   words,
+  arranging,
+  onMove,
 }: {
   tracker: TrackerDef;
   fields: FieldDef[];
@@ -251,9 +358,13 @@ function RowList({
   rows: TrackerRow[];
   meta: Meta;
   words: { yes: string; no: string };
+  arranging: boolean;
+  onMove: (id: string, target: string, after: boolean) => void;
 }) {
   const t = useTranslations('trackers');
   const roles = tracker.settings.roles;
+  const [editing, setEditing] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
   const titleOf = (r: TrackerRow) => rowName(r.values, roles) || t('untitled');
   const cell = (f: FieldDef, r: TrackerRow) =>
     valueText(f, r.values[f.key] ?? null, meta.settings, words) ?? '—';
@@ -262,12 +373,63 @@ function RowList({
     fields.find((f) => f.key === (roles.short_key || roles.title_key))?.label ?? '';
   // A long name is cut to two lines here; the whole of it is on the row's page.
   const name = (r: TrackerRow) => <span className="line-clamp-2">{titleOf(r)}</span>;
+  // Quick changes cover the columns shown in the list (the BDD and Remarks, say); the rest is on the row's page.
+  const quick = columns.filter((f) => f.show_in_form && !NOT_EDITABLE.has(f.type));
+  const span = columns.length + (arranging ? 3 : 2);
+
+  // Up and down move past the row next to it on screen, so arranging works while a search is shown too.
+  const step = (r: TrackerRow, i: number, dir: -1 | 1, at: Layout) => {
+    const other = rows[i + dir];
+    if (!other) return;
+    onMove(r.id, other.id, dir === 1);
+    // The row moves; the focus follows it.
+    requestAnimationFrame(() =>
+      document.getElementById(`${at}-move-${dir === 1 ? 'down' : 'up'}-${r.id}`)?.focus(),
+    );
+  };
+  const moveButtons = (r: TrackerRow, i: number, at: Layout) => (
+    <div className="flex gap-2">
+      <Button
+        id={`${at}-move-up-${r.id}`}
+        aria-label={t('moveUp', { name: titleOf(r) })}
+        disabled={i === 0}
+        onClick={() => step(r, i, -1, at)}
+      >
+        <span aria-hidden="true">{'↑'}</span>
+      </Button>
+      <Button
+        id={`${at}-move-down-${r.id}`}
+        aria-label={t('moveDown', { name: titleOf(r) })}
+        disabled={i === rows.length - 1}
+        onClick={() => step(r, i, 1, at)}
+      >
+        <span aria-hidden="true">{'↓'}</span>
+      </Button>
+    </div>
+  );
+  // Phone cards and the table are both in the page (one hidden), so each keeps its own open form and ids.
+  const editButton = (r: TrackerRow, at: Layout) =>
+    quick.length > 0 && (
+      <Button
+        aria-expanded={editing === `${at}:${r.id}`}
+        aria-label={t('editRow', { name: titleOf(r) })}
+        onClick={() => setEditing((cur) => (cur === `${at}:${r.id}` ? null : `${at}:${r.id}`))}
+      >
+        {t('edit')}
+      </Button>
+    );
+  const drop = (e: DragEvent, target: TrackerRow, i: number) => {
+    e.preventDefault();
+    const from = rows.findIndex((x) => x.id === dragging);
+    if (dragging && dragging !== target.id && from >= 0) onMove(dragging, target.id, from < i);
+    setDragging(null);
+  };
 
   return (
     <>
       {/* Cards on a phone. */}
       <ul className="flex flex-col gap-3 md:hidden">
-        {rows.map((r) => (
+        {rows.map((r, i) => (
           <li key={r.id} className="rounded-2xl border-ui border-soft bg-surface p-4 shadow-sm">
             <Link
               href={href(r)}
@@ -286,6 +448,20 @@ function RowList({
               ))}
             </dl>
             {r.incomplete.length > 0 && <Chip className="mt-2">{t('incomplete')}</Chip>}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {arranging && moveButtons(r, i, 'card')}
+              {editButton(r, 'card')}
+            </div>
+            {editing === `card:${r.id}` && (
+              <QuickEdit
+                tracker={tracker}
+                fields={quick}
+                row={r}
+                meta={meta}
+                name={titleOf(r)}
+                onDone={() => setEditing(null)}
+              />
+            )}
           </li>
         ))}
       </ul>
@@ -295,6 +471,11 @@ function RowList({
           <caption className="sr-only">{t('listCaption', { name: tracker.name })}</caption>
           <thead>
             <tr className="border-b-ui border-line bg-sunken">
+              {arranging && (
+                <th scope="col" className="px-4 py-2 font-semibold">
+                  {t('orderColumn')}
+                </th>
+              )}
               <th scope="col" className="px-4 py-2 font-semibold">
                 {titleLabel}
               </th>
@@ -303,11 +484,41 @@ function RowList({
                   {f.label}
                 </th>
               ))}
+              <th scope="col" className="px-4 py-2">
+                <span className="sr-only">{t('edit')}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t-ui border-soft align-middle">
+            {rows.map((r, i) => [
+              <tr
+                key={r.id}
+                draggable={arranging}
+                onDragStart={(e) => {
+                  setDragging(r.id);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => setDragging(null)}
+                onDragOver={(e) => {
+                  if (dragging) e.preventDefault();
+                }}
+                onDrop={(e) => drop(e, r, i)}
+                className={clsx(
+                  'border-t-ui border-soft align-middle',
+                  arranging && 'cursor-grab',
+                  dragging === r.id && 'opacity-50',
+                )}
+              >
+                {arranging && (
+                  <td className="whitespace-nowrap px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <span aria-hidden="true" className="text-xl text-muted">
+                        {'⠿'}
+                      </span>
+                      {moveButtons(r, i, 'table')}
+                    </div>
+                  </td>
+                )}
                 <td className="min-w-[16rem] max-w-[26rem] px-4 py-2">
                   <Link
                     href={href(r)}
@@ -335,12 +546,115 @@ function RowList({
                     )}
                   </td>
                 ))}
-              </tr>
-            ))}
+                <td className="px-4 py-2">{editButton(r, 'table')}</td>
+              </tr>,
+              editing === `table:${r.id}` && (
+                <tr key={`${r.id}-edit`} className="bg-sunken">
+                  <td colSpan={span} className="px-4 py-3">
+                    <QuickEdit
+                      tracker={tracker}
+                      fields={quick}
+                      row={r}
+                      meta={meta}
+                      name={titleOf(r)}
+                      onDone={() => setEditing(null)}
+                    />
+                  </td>
+                </tr>
+              ),
+            ])}
           </tbody>
         </table>
       </div>
     </>
+  );
+}
+
+/** Changes the columns shown in the list right there, without leaving the list. */
+function QuickEdit({
+  tracker,
+  fields,
+  row,
+  meta,
+  name,
+  onDone,
+}: {
+  tracker: TrackerDef;
+  fields: FieldDef[];
+  row: TrackerRow;
+  meta: Meta;
+  name: string;
+  onDone: () => void;
+}) {
+  const t = useTranslations('trackers');
+  const common = useTranslations('common');
+  const client = useQueryClient();
+  const toast = useToast();
+  const [values, setValues] = useState<Record<string, unknown>>(() => ({ ...row.values }));
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [failure, setFailure] = useState('');
+  const [saving, setSaving] = useState(false);
+  const today = todayIn(meta.settings.timezone);
+
+  async function save() {
+    setSaving(true);
+    setErrors({});
+    setFailure('');
+    const body: Record<string, unknown> = {};
+    for (const f of fields) body[f.key] = values[f.key] ?? null;
+    try {
+      await api(`/trackers/${tracker.slug}/rows/${row.id}`, {
+        method: 'PATCH',
+        body: { rev: row.rev, values: body },
+      });
+      await client.invalidateQueries();
+      toast.show({ message: t('savedName', { name }) });
+      onDone();
+    } catch (e) {
+      if (e instanceof ApiError && e.issues.length > 0) {
+        setErrors(Object.fromEntries(e.issues.map((i) => [i.field, i.message])));
+        setFailure(t('fixErrors'));
+      } else setFailure(e instanceof ApiError ? e.message : t('saveFailed'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      noValidate
+      aria-label={t('editRow', { name })}
+      className="mt-3 flex flex-col gap-3 md:mt-0"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <div className="grid gap-x-4 gap-y-3 lg:grid-cols-2">
+        {fields.map((f) => (
+          <div key={f.key} className={f.type === 'long_text' ? 'lg:col-span-2' : undefined}>
+            <FieldControl
+              field={f}
+              value={values[f.key]}
+              onChange={(v) => setValues((cur) => ({ ...cur, [f.key]: v }))}
+              error={errors[f.key]}
+              quickDates={f.type === 'date' ? { today, tomorrow: shiftDate(today, 1) } : undefined}
+            />
+          </div>
+        ))}
+      </div>
+      {failure && (
+        <p role="alert" className="font-semibold text-danger">
+          {failure}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" variant="primary" disabled={saving}>
+          {saving ? t('saving') : t('save')}
+        </Button>
+        <Button onClick={onDone}>{common('cancel')}</Button>
+      </div>
+    </form>
   );
 }
 
