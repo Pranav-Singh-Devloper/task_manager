@@ -342,6 +342,8 @@ function Loaded({ data, meta }: { data: TrackerData; meta: Meta }) {
 
 type Layout = 'card' | 'table';
 
+const STICKY_RIGHT = 'sticky right-0 z-10 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.25)]';
+
 function RowList({
   tracker,
   fields,
@@ -484,7 +486,8 @@ function RowList({
                   {f.label}
                 </th>
               ))}
-              <th scope="col" className="px-4 py-2">
+              {/* Edit stays in view at the right edge when a wide table scrolls sideways. */}
+              <th scope="col" className={clsx('px-4 py-2 bg-sunken', STICKY_RIGHT)}>
                 <span className="sr-only">{t('edit')}</span>
               </th>
             </tr>
@@ -546,7 +549,9 @@ function RowList({
                     )}
                   </td>
                 ))}
-                <td className="px-4 py-2">{editButton(r, 'table')}</td>
+                <td className={clsx('bg-surface px-4 py-2', STICKY_RIGHT)}>
+                  {editButton(r, 'table')}
+                </td>
               </tr>,
               editing === `table:${r.id}` && (
                 <tr key={`${r.id}-edit`} className="bg-sunken">
